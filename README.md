@@ -37,10 +37,13 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 - **Detecção**: tempo até ficar ocioso, tolerância para "fechado" e se a janela em foco conta como em uso.
 - **Protetor de tela**: ligar, abrir após N minutos, bloquear o PC ao fechar.
 - **Geral**: idioma (automático, português ou inglês), iniciar com o Windows, abrir a pasta de dados e restaurar os padrões.
+- **Como funciona**: explica como o app sabe se uma IA está em uso e mostra, ao vivo, os sinais lidos de cada ferramenta.
 
 ![Janela de configurações: modelos](docs/settings-templates.png)
 
 ![Janela de configurações: detecção](docs/settings-detection.png)
+
+![Janela de configurações: como funciona, com os sinais ao vivo](docs/settings-how.png)
 
 ## Requisitos
 
@@ -152,7 +155,7 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 
 - **Lock screen**: renders an image with each tool's state and sets it as your lock screen whenever the state changes. Press `Win + L` to see it.
 - **Animated screensaver**: after a few idle minutes, a fullscreen scene with the animated mascots. Any key or mouse move closes it.
-- **Settings window**: modern and animated, with a live lock screen preview. Browse the templates (more are coming soon), pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
+- **Settings window**: modern and animated, with a live lock screen preview. Browse the templates (more are coming soon), see live how detection works, pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
 - **Tray icon**: double-click to open the settings; the menu also pauses, refreshes the lock screen and tests the screensaver.
 - Starts with Windows.
 

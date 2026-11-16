@@ -10,6 +10,7 @@ Uso: python settings_ui.py            abre a janela
 """
 import ctypes
 import itertools
+import json
 import os
 import queue
 import subprocess
@@ -179,6 +180,24 @@ def icon(name, size, color):
             d.line([(8 * u, 20.4 * u), (16 * u, 20.4 * u)], fill=c, width=lw)
             dot(8, 20.4, lw / 2 / u)
             dot(16, 20.4, lw / 2 / u)
+        elif name == "doc":
+            rr(5, 3, 19, 21, 2.4, outline=c)
+            for y in (9, 13, 17):
+                d.line([(8.5 * u, y * u), (15.5 * u, y * u)], fill=c, width=lw)
+        elif name == "window":
+            rr(3, 4, 21, 20, 2.6, outline=c)
+            d.line([(3 * u, 9.5 * u), (21 * u, 9.5 * u)], fill=c, width=lw)
+            dot(6.5, 6.8, 0.9)
+        elif name == "info":
+            d.ellipse([3 * u, 3 * u, 21 * u, 21 * u], outline=c, width=lw)
+            dot(12, 7.6, 1.3)
+            d.line([(12 * u, 11 * u), (12 * u, 17 * u)], fill=c, width=lw)
+        elif name == "lock":
+            rr(5, 10.5, 19, 21, 2.5, outline=c)
+            d.arc([8 * u, 3 * u, 16 * u, 15 * u], 180, 360, fill=c, width=lw)
+            d.line([(8 * u, 9 * u), (8 * u, 10.5 * u)], fill=c, width=lw)
+            d.line([(16 * u, 9 * u), (16 * u, 10.5 * u)], fill=c, width=lw)
+            dot(12, 15.8, 1.3)
         elif name == "layers":
             rr(4, 4, 16, 16, 2.6, outline=c)
             rr(8, 8, 20, 20, 2.6, fill=SIDE + (255,), outline=c)
@@ -594,7 +613,7 @@ class SettingsApp:
     PAGES = [("overview", "nav.overview", "grid"), ("templates", "nav.templates", "layers"),
              ("tools", "nav.tools", "chip"),
              ("detection", "nav.detection", "pulse"), ("saver", "nav.saver", "monitor"),
-             ("general", "nav.general", "sliders")]
+             ("general", "nav.general", "sliders"), ("how", "nav.how", "info")]
 
     def __init__(self, root):
         self.root = root
@@ -719,6 +738,9 @@ class SettingsApp:
         if self.PAGES[idx][0] == "overview":
             self.states_dirty = True
             self.wake.set()
+        if self.PAGES[idx][0] == "how":
+            self.wake.set()
+            self.how_start()
         for n, g in enumerate(self.page.groups):
             self.page.targets.extend(g.targets)
             if animate:
@@ -838,6 +860,104 @@ class SettingsApp:
         if (key, w, h) not in cache:
             cache[(key, w, h)] = ImageTk.PhotoImage(template_preview(key, ok, w, h))
         return cache[(key, w, h)]
+
+    # -- como funciona
+    def page_how(self):
+        self.header("how.title", "how.sub")
+        cfg = self.cfg
+        cw = (CW - 24) / 3
+        blocks = [("doc", "how.files", {"win": duration(cfg["active_window"])}),
+                  ("pulse", "how.proc", {"grace": duration(cfg["close_grace"])}),
+                  ("window", "how.focus", {"hold": duration(cfg["focus_hold"])})]
+        for i, (ic, key, kw) in enumerate(blocks):
+            x, y = CX + i * (cw + 12), 118
+            g = self.new_group()
+            self.hover_cards.append(g.card(x, y, cw, 164))
+            g.img(x + 18, y + 18, icon(ic, px(24), ACC))
+            g.text(x + 54, y + 21, t(key + ".t"), self.f["label"], TEXT)
+            desc = t("how.focus.off") if key == "how.focus" and not cfg["follow_focus"] else t(key + ".d", **kw)
+            g.text(x + 18, y + 58, desc, self.f["small"], MUTED, width=cw - 36)
+        # leitura ao vivo
+        y0 = 118 + 164 + 12
+        lg = self.new_group()
+        self.hover_cards.append(lg.card(CX, y0, CW, 196))
+        lg.text(CX + 22, y0 + 16, t("how.live"), self.f["label"], TEXT)
+        self.live_dot = lg.img(CX + CW - 24 - 10, y0 + 21, circle(px(8), GREEN), anchor="ne")
+        for label, dx in (("how.col.files", 170), ("how.col.proc", 300), ("how.col.focus", 410)):
+            lg.text(CX + dx, y0 + 48, t(label), self.f["tiny"], DIM)
+        self.how_rows = {}
+        for i, key in enumerate(settings.TOOLS):
+            y = y0 + 72 + i * 38
+            lg.text(CX + 22, y, t("tool." + key), self.f["chip"], TEXT)
+            row = {"cache": None}
+            for col, dx in (("files", 170), ("proc", 300), ("focus", 410)):
+                row[col] = lg.text(CX + dx, y + 2, "", self.f["small"], MUTED)
+            row["pill"] = lg.img(CX + CW - 22 - 92, y - 3, rrect(px(92), px(26), px(13), (30, 30, 37), BORDER))
+            row["pill_tx"] = lg.text(CX + CW - 22 - 46, y + 10, "", self.f["small"], MUTED, anchor="center")
+            self.how_rows[key] = row
+        pg = self.new_group()
+        self.hover_cards.append(pg.card(CX, y0 + 196 + 12, CW, 66))
+        pg.img(CX + 20, y0 + 196 + 12 + 21, icon("lock", px(24), GREEN))
+        pg.text(CX + 58, y0 + 196 + 12 + 13, t("how.privacy"), self.f["small"], MUTED, width=CW - 80)
+
+    def how_start(self):
+        if getattr(self, "how_job", None):
+            self.root.after_cancel(self.how_job)
+        self.how_tick()
+
+    def how_tick(self):
+        self.how_job = None
+        if not self.page or self.PAGES[self.page_idx][0] != "how":
+            return
+        try:
+            self._paint_how(*self._read_signals())
+        except tk.TclError:
+            return
+        self.how_job = self.root.after(1500, self.how_tick)
+
+    def _read_signals(self):
+        """Sinais mais recentes: do status.json da bandeja (inclui a janela em foco) ou, se ela
+        não estiver respondendo, da leitura local desta janela (sem o foco, que seria a própria janela)."""
+        try:
+            data = json.loads((settings.OUT_DIR / "status.json").read_text(encoding="utf-8"))
+            if time.time() - data["updated"] < 15:
+                return data["signals"], True
+        except (OSError, ValueError, KeyError):
+            pass
+        import detector
+        return dict(detector.LAST), False
+
+    def _ago(self, age):
+        if age is None:
+            return t("how.none")
+        if age < 5:
+            return t("how.now")
+        return t("how.long") if age > 3600 else t("how.ago", t=duration(age))
+
+    STATE_COLORS = {"open": (150, 150, 158), "closed": (96, 96, 104), "off": (70, 70, 78)}
+
+    def _paint_how(self, sig, from_tray):
+        tools = self.cfg["tools"]
+        for key, row in self.how_rows.items():
+            s = sig.get(key) or {}
+            state = s.get("state", "closed") if tools.get(key, True) else "off"
+            if state == "off":
+                texts = ("—", "—", "—")
+            else:
+                proc = s.get("running")
+                focus = (t("how.now") if s.get("focus_now") else self._ago(s.get("focus_age"))) if from_tray else "—"
+                texts = (self._ago(s.get("file_age")),
+                         "—" if proc is None else (t("how.open") if proc else t("how.notrunning")),
+                         focus)
+            if row["cache"] == (texts, state):
+                continue
+            row["cache"] = (texts, state)
+            for col, tx in zip(("files", "proc", "focus"), texts):
+                self.c.itemconfigure(row[col], text=tx, fill=hexc(MUTED if state != "off" else DIM))
+            color = TOOL_ACCENT.get(key, ACC) if state == "working" else self.STATE_COLORS.get(state, MUTED)
+            label = t("ov.off") if state == "off" else t("state." + state)
+            self.c.itemconfigure(row["pill"], image=rrect(px(92), px(26), px(13), (30, 30, 37), color))
+            self.c.itemconfigure(row["pill_tx"], text=label, fill=hexc(color))
 
     # -- ferramentas
     def page_tools(self):
@@ -1089,7 +1209,7 @@ class SettingsApp:
         last, last_tools = None, None
         while self.alive:
             try:
-                if self.PAGES[self.page_idx][0] == "overview" or last is None:
+                if self.PAGES[self.page_idx][0] in ("overview", "how") or last is None:
                     st = get_states()
                     tools = tuple(sorted(settings.get()["tools"].items()))
                     if st != last or tools != last_tools or getattr(self, "states_dirty", False) \
@@ -1142,7 +1262,7 @@ class SettingsApp:
         if not self.alive:
             return
         try:
-            if self.live_dot and self.PAGES[self.page_idx][0] == "overview":
+            if self.live_dot and self.PAGES[self.page_idx][0] in ("overview", "how"):
                 k = (1 + __import__("math").sin(time.perf_counter() * 3)) / 2
                 self.c.itemconfigure(self.live_dot, image=circle(px(8), mix((40, 90, 62), GREEN, q(k, 8))))
         except tk.TclError:

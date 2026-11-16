@@ -1,6 +1,7 @@
 """Ícone na bandeja: monitora Claude Code, Codex e Cursor, atualiza a lock screen
 e abre o protetor de tela animado quando o PC fica ocioso."""
 import ctypes
+import json
 import os
 import subprocess
 import sys
@@ -14,6 +15,7 @@ from PIL import Image
 
 import launcher
 import settings
+import detector
 from detector import get_states
 from i18n import t
 from lockscreen import set_lockscreen
@@ -73,6 +75,17 @@ def session_locked():
         return True
     u.CloseDesktop(h)
     return False
+
+
+def write_status(states):
+    """Grava o estado e os sinais da última leitura em status.json (a janela de configurações lê)."""
+    try:
+        tmp = OUT_DIR / "status.json.tmp"
+        tmp.write_text(json.dumps({"updated": time.time(), "states": states, "signals": detector.LAST}),
+                       encoding="utf-8")
+        os.replace(tmp, OUT_DIR / "status.json")
+    except OSError:
+        pass
 
 
 def make_icon(paused=False):
@@ -187,6 +200,7 @@ class App:
                 if not self.paused:
                     status = get_states()
                     self.status = status
+                    write_status(status)
                     self.icon.title = "Lockscreen Agents — " + self._status_text()
                     self.icon.update_menu()
                     key = tuple(sorted(status.items()))

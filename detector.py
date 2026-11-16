@@ -193,42 +193,52 @@ def tool_of_path(path):
     return None
 
 
+LAST = {}  # sinais da última leitura de cada ferramenta (a tela "Como funciona" mostra isto)
+
+
 def get_states(window=None):
     """Estado de cada ferramenta: 'working' (arquivos mudando), 'open' (processo rodando,
     sem atividade), 'closed' (nenhum processo por mais de `close_grace` segundos) ou 'off'
     (desligada nas configurações). Os limites vêm de settings.py.
-    A tolerância evita que uma leitura de processos falha (ex.: ao bloquear o PC) vire 'fechado'."""
+    A tolerância evita que uma leitura de processos falha (ex.: ao bloquear o PC) vire 'fechado'.
+    Os sinais usados (arquivos, processo, foco) ficam em `LAST`."""
     cfg = settings.get()
     window = cfg["active_window"] if window is None else window
     now = time.time()
-    working, _ = get_status(window)
+    working, age = get_status(window)
     try:
         running = running_exes()
     except Exception:  # noqa: BLE001
         running = None  # leitura falhou: mantém o que já se sabia
-    if cfg["follow_focus"]:
-        try:  # janela em foco + usuário mexendo no PC = ferramenta em uso
-            fg = tool_of_path(foreground_path())
-            if fg and idle_seconds() < FG_MAX_IDLE:
-                _last_fg[fg] = now
-        except Exception:  # noqa: BLE001
-            pass
+    fg, user_active = None, False
+    try:  # janela em foco + usuário mexendo no PC = ferramenta em uso
+        fg = tool_of_path(foreground_path())
+        user_active = idle_seconds() < FG_MAX_IDLE
+    except Exception:  # noqa: BLE001
+        pass
+    if fg and user_active and cfg["follow_focus"]:
+        _last_fg[fg] = now
     states = {}
     for name in SOURCES:
+        sig = {"file_age": age.get(name),
+               "running": None if running is None else bool(PROCESS_EXES[name] & running),
+               "focus_now": bool(fg == name and user_active),
+               "focus_age": (now - _last_fg[name]) if name in _last_fg else None}
         if not cfg["tools"].get(name, True):
-            states[name] = "off"
-            continue
-        focused = cfg["follow_focus"] and now - _last_fg.get(name, 0) <= cfg["focus_hold"]
-        if working[name] or focused:
+            state = "off"
+        elif working[name] or (cfg["follow_focus"] and now - _last_fg.get(name, 0) <= cfg["focus_hold"]):
             _last_seen[name] = now
-            states[name] = "working"
-            continue
-        if running is not None and PROCESS_EXES[name] & running:
-            _last_seen[name] = now
-        seen = _last_seen.get(name)
-        if seen is None and running is None:
-            seen = now  # sem informação nenhuma: assume aberto
-        states[name] = "open" if seen is not None and now - seen <= cfg["close_grace"] else "closed"
+            state = "working"
+        else:
+            if running is not None and PROCESS_EXES[name] & running:
+                _last_seen[name] = now
+            seen = _last_seen.get(name)
+            if seen is None and running is None:
+                seen = now  # sem informação nenhuma: assume aberto
+            state = "open" if seen is not None and now - seen <= cfg["close_grace"] else "closed"
+        states[name] = state
+        sig["state"] = state
+        LAST[name] = sig
     return states
 
 

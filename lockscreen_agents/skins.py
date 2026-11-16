@@ -1,7 +1,8 @@
 """Visuais (skins) de cada mascote.
 
-Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem a chave inglesa
-e a xícara de café, o Codex tem o visual padrão e a xícara de café, e o Cursor só tem o padrão.
+Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem a chave inglesa,
+a xícara de café e o chapéu de Natal; o Codex tem o padrão, a xícara de café e o chapéu de Natal; o Cursor
+tem o padrão e o chapéu de Natal.
 
 Para criar um visual novo:
 
@@ -16,12 +17,17 @@ SKINS = {
     "claude": [
         {"id": "wrench", "available": True},
         {"id": "coffee", "available": True},
+        {"id": "santa", "available": True},
     ],
     "codex": [
         {"id": "default", "available": True},
         {"id": "coffee", "available": True},
+        {"id": "santa", "available": True},
     ],
-    "cursor": [{"id": "default", "available": True}],
+    "cursor": [
+        {"id": "default", "available": True},
+        {"id": "santa", "available": True},
+    ],
 }
 
 

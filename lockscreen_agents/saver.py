@@ -32,7 +32,8 @@ SPECS = [
     ("codex", "Codex",
      lambda size, step, blink: draw_codex(size, step=step, blink=blink, skin=settings.get()["skins"]["codex"]),
      True),
-    ("cursor", "Cursor", lambda size, step, blink: draw_cursor(size), False),
+    ("cursor", "Cursor",
+     lambda size, step, blink: draw_cursor(size, skin=settings.get()["skins"]["cursor"]), False),
 ]
 
 
@@ -85,7 +86,8 @@ class Actor:
         k = (color, step, flip, blink, self.closed)
         if k not in self.cache:
             if self.key == "cursor":  # ativo: cubo detalhado (step = nível do brilho, 0..5)
-                img = draw_cursor(self.scene.size, active=color, glow=(step or 0) / 5)
+                img = draw_cursor(self.scene.size, active=color, glow=(step or 0) / 5,
+                                   skin=settings.get()["skins"]["cursor"])
             else:
                 img = self.draw(self.scene.size, step, blink)
             if flip:

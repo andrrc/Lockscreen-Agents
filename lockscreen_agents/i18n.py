@@ -66,6 +66,8 @@ STRINGS = {
         "skins.title": "Personagens",
         "skins.sub": "Escolha o visual de cada mascote. Novos visuais estão a caminho.",
         "skin.claude.wrench": "Chave inglesa", "skin.claude.coffee": "Xícara de café",
+        "skin.claude.santa": "Chapéu de Natal", "skin.codex.santa": "Chapéu de Natal",
+        "skin.cursor.santa": "Chapéu de Natal",
         "skin.codex.default": "Padrão", "skin.codex.coffee": "Xícara de café", "skin.cursor.default": "Padrão",
         # ferramentas
         "tools.title": "Ferramentas",
@@ -167,6 +169,8 @@ STRINGS = {
         "skins.title": "Characters",
         "skins.sub": "Pick each mascot's look. New looks are on the way.",
         "skin.claude.wrench": "Wrench", "skin.claude.coffee": "Coffee cup",
+        "skin.claude.santa": "Christmas hat", "skin.codex.santa": "Christmas hat",
+        "skin.cursor.santa": "Christmas hat",
         "skin.codex.default": "Default", "skin.codex.coffee": "Coffee cup", "skin.cursor.default": "Default",
         "tools.title": "Tools",
         "tools.sub": "Choose which assistants show up as mascots.",

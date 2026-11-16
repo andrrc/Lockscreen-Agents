@@ -31,6 +31,42 @@ CODEX_CHEST = (214, 222, 244)
 CODEX_ARM = (96, 134, 240)
 ACCENT = {"claude": CLAUDE_ORANGE, "codex": (122, 160, 255), "cursor": (230, 230, 235)}
 
+# Chapéu de Natal (visual "santa"). R vermelho, D vermelho escuro, L brilho, W pompom e barra, V sombra branca.
+HAT_ART = [
+    "..........RRRRR.......",
+    "........RRRRRRRRR.....",
+    ".......RRRRRRRRRRR.WW.",
+    "......LRRRRRRRRRRRWWWW",
+    ".....LRRRRRRRRRRRRWWWW",
+    "....LRRRRRRRRRRRRRDVV.",
+    "...LRRRRRRRRRRRRRRDD..",
+    "..WWWWWWWWWWWWWWWWWWW.",
+    ".WWWWWWWWWWWWWWWWWWWWW",
+    ".VVVVVVVVVVVVVVVVVVVVV",
+]
+HAT_COLORS = {"R": (212, 36, 46), "D": (160, 24, 36), "L": (238, 78, 82),
+              "W": (250, 250, 252), "V": (212, 220, 234)}
+HAT_W = 22  # colunas da arte
+
+
+def _with_pixel_hat(img, cx, bottom_y, sub):
+    """Põe o chapéu de Natal em pixel-art no mascote `img`, centralizado em `cx` e com a base da barra
+    em `bottom_y` (px da imagem). `sub` é o tamanho de um "pixel" do chapéu. Se o chapéu passar do topo,
+    a imagem ganha uma margem em cima (o mascote desce junto, então a base continua no mesmo lugar)."""
+    hat_w, hat_h = HAT_W * sub, len(HAT_ART) * sub
+    left, top = int(cx - hat_w / 2), int(bottom_y - hat_h)
+    pad_l, pad_t = max(0, -left), max(0, -top)
+    pad_r = max(0, left + hat_w - img.width)
+    out = Image.new("RGBA", (img.width + pad_l + pad_r, img.height + pad_t), (0, 0, 0, 0))
+    out.paste(img, (pad_l, pad_t), img)
+    d = ImageDraw.Draw(out)
+    for y, row in enumerate(HAT_ART):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                x0, y0 = left + pad_l + x * sub, top + pad_t + y * sub
+                d.rectangle([x0, y0, x0 + sub - 1, y0 + sub - 1], fill=HAT_COLORS[ch])
+    return out
+
 
 def _draw_cup(d, hand_x, hand_cy, sub, wiggle):
     """Xícara de café em pixel-art. A alça fica na altura da mão (`hand_cy`) e encosta no braço
@@ -56,7 +92,8 @@ def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
       corpo 8x6, bracinhos 2x2 nas laterais, olhos 1x1 e quatro pernas 1x2.
     `step` alterna braços e pernas (caminhada); `blink` achata os olhos;
     `tool` põe um acessório na mão esquerda (lado esquerdo da imagem) = trabalhando.
-    `skin` escolhe o acessório: "wrench" (chave inglesa) ou "coffee" (xícara de café, com vapor).
+    `skin` escolhe o acessório: "wrench" (chave inglesa), "coffee" (xícara de café, com vapor) ou
+    "santa" (chave inglesa e chapéu de Natal, que aparece também quando ocioso).
     """
     coffee = tool and skin == "coffee"
     rows = 11 if coffee else 10  # a xícara com vapor pede uma linha a mais em cima
@@ -102,6 +139,8 @@ def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
     for i, x in enumerate((2, 4, 7, 9)):
         up = walking and (i % 2) == (step % 2)
         box(x, 6, x, 6 if up else 7, CLAUDE_ORANGE)
+    if skin == "santa":  # o corpo vai das células 2 a 9 (+ margem ox) e começa na linha oy
+        img = _with_pixel_hat(img, cx=7 * px, bottom_y=int((oy + 0.6) * px), sub=max(1, px // 2))
     return img
 
 
@@ -111,7 +150,8 @@ def draw_codex(size=300, step=None, blink=False, tool=True, skin="default"):
 
     Grade de 14x15 células. `step` alterna braços e pés (caminhada);
     `blink` apaga o cursor `_` da tela (cursor piscando = trabalhando).
-    `skin` "coffee" põe uma xícara de café na mão esquerda (só com `tool`, ou seja, trabalhando).
+    `skin` "coffee" põe uma xícara de café na mão esquerda (só com `tool`, ou seja, trabalhando);
+    "santa" põe um chapéu de Natal (também quando ocioso).
     """
     rows = 15
     coffee = tool and skin == "coffee"
@@ -166,6 +206,8 @@ def draw_codex(size=300, step=None, blink=False, tool=True, skin="default"):
     for i, x in enumerate((4, 8)):
         up = walking and (i % 2) == (step % 2)
         box(x, 13, x + 1, 13 if up else 14, CODEX_BLUE)
+    if skin == "santa":  # a barra cobre as três "bolhas" do topo da nuvem
+        img = _with_pixel_hat(img, cx=7 * px, bottom_y=int(px * 1.35), sub=max(1, int(px * 0.55)))
     return img
 
 
@@ -234,9 +276,13 @@ def _cursor_detailed(size, glow):
     return img.resize((size, size), Image.LANCZOS)
 
 
-def draw_cursor(size=300, active=False, glow=0.0):
-    """Mascote do Cursor: cubo simples quando ocioso; cubo detalhado do logo quando ativo."""
-    return _cursor_detailed(size, glow) if active else _cursor_simple(size)
+def draw_cursor(size=300, active=False, glow=0.0, skin="default"):
+    """Mascote do Cursor: cubo simples quando ocioso; cubo detalhado do logo quando ativo.
+    `skin` "santa" põe um chapéu de Natal em pixel-art."""
+    cube = _cursor_detailed(size, glow) if active else _cursor_simple(size)
+    if skin == "santa":  # o chapéu (mesma pixel-art dos outros) assenta no topo do cubo
+        cube = _with_pixel_hat(cube, cx=size / 2, bottom_y=int(size * 0.27), sub=max(1, round(size * 0.027)))
+    return cube
 
 
 def _gray(img, dim=0.55, alpha=0.8):
@@ -269,7 +315,7 @@ def _font(size):
 def render(status, step=None, size=(W, H)):
     """status: {'claude': 'working'|'open'|'closed'|'off', ...} (aceita também True/False).
     Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza."""
-    from . import settings
+    from . import settings, skins
     from .i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)
@@ -280,15 +326,17 @@ def render(status, step=None, size=(W, H)):
     total = len(keys) * logo + (len(keys) - 1) * gap
     x0 = (w - total) // 2
     y0 = (h - logo) // 2 - 40
+    cfg_skins = settings.get()["skins"]
     makers = {
-        "claude": lambda: draw_claude(logo, step, tool=state_of(status, "claude") == "working",
-                                      skin=settings.get()["skins"]["claude"]),
-        "codex": lambda: draw_codex(logo, step, tool=state_of(status, "codex") == "working",
-                                    skin=settings.get()["skins"]["codex"]),
-        "cursor": lambda: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6),
+        "claude": lambda sk: draw_claude(logo, step, tool=state_of(status, "claude") == "working", skin=sk),
+        "codex": lambda sk: draw_codex(logo, step, tool=state_of(status, "codex") == "working", skin=sk),
+        "cursor": lambda sk: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6, skin=sk),
     }
     for i, key in enumerate(keys):
-        label, logo_img = t("tool." + key), makers[key]()
+        skin = cfg_skins[key]
+        label, logo_img = t("tool." + key), makers[key](skin)
+        # o chapéu cresce a imagem para cima: o mascote fica onde estava e o chapéu sobra por cima
+        hat_extra = logo_img.height - makers[key](skins.default(key)).height if skin == "santa" else 0
         x = x0 + i * (logo + gap)
         st = state_of(status, key)
         active = st == "working"
@@ -300,7 +348,7 @@ def render(status, step=None, size=(W, H)):
             pic = _gray(logo_img, dim=0.25, alpha=0.5)
         # centraliza o logo (o caranguejo não é quadrado)
         px = x + (logo - pic.width) // 2
-        py = y0 + (logo - pic.height) // 2
+        py = y0 + (logo - (pic.height - hat_extra)) // 2 - hat_extra
         # tira o caranguejo pro chão quando ativo (leve "saltinho" conforme o frame)
         if active and key == "claude":
             py -= 14 if step and step % 2 else 0

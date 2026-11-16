@@ -219,9 +219,9 @@ def mascot(key, size, skin=None):
     def make():
         img = {"claude": lambda: draw_claude(size * 2, tool=True, skin=skin),
                "codex": lambda: draw_codex(size * 2, skin=skin),
-               "cursor": lambda: draw_cursor(size * 2, active=True, glow=0.4)}[key]()
+               "cursor": lambda: draw_cursor(size * 2, active=True, glow=0.4, skin=skin)}[key]()
         w, h = img.width / 2, img.height / 2  # metade do tamanho desenhado (mais nítido)
-        k = min(1.0, size * 1.1 / w)  # visuais largos (xícara) encolhem para caber na lista
+        k = min(1.0, size * 1.1 / w, size * 1.1 / h)  # visuais largos (xícara) ou altos (chapéu) encolhem
         return img.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
 
     return _photo(("mascot", key, size, skin), make)

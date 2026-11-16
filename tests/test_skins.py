@@ -58,3 +58,30 @@ def test_lock_screen_uses_the_chosen_skin():
     before = render.render(working)
     settings.update(skins={"codex": "coffee"})
     assert render.render(working).tobytes() != before.tobytes()
+
+
+def test_santa_hat_changes_every_mascot_even_when_idle():
+    makers = {
+        "claude": lambda skin: render.draw_claude(224, tool=False, skin=skin),
+        "codex": lambda skin: render.draw_codex(225, tool=False, skin=skin),
+        "cursor": lambda skin: render.draw_cursor(224, active=False, skin=skin),
+    }
+    for tool, make in makers.items():
+        hat = make("santa")
+        assert hat.tobytes() != make(skins.default(tool)).tobytes()
+        assert hat.height >= make(skins.default(tool)).height
+
+
+def test_santa_hat_has_red_pixels():
+    img = render.draw_cursor(300, active=True, skin="santa").convert("RGB")
+    assert any(r > 180 and g < 80 and b < 80 for r, g, b in img.getdata())
+
+
+def test_lock_screen_with_santa_hat_keeps_mascots_in_place():
+    status = {"claude": "working", "codex": "working", "cursor": "working"}
+    plain = render.render(status)
+    settings.update(skins={"claude": "santa", "codex": "santa", "cursor": "santa"})
+    hat = render.render(status)
+    assert hat.tobytes() != plain.tobytes()
+    # o texto embaixo dos mascotes (nomes e estados) não se mexe
+    assert hat.crop((0, 700, 1920, 1080)).tobytes() == plain.crop((0, 700, 1920, 1080)).tobytes()

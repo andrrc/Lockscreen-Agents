@@ -14,7 +14,7 @@ lockscreen_agents/          o app
   settings.py               settings.json com validação
   i18n.py                   textos em português e inglês
   templates.py              lista dos modelos (visuais da tela inteira)
-  skins.py                  lista dos visuais de cada mascote (chave inglesa, xícara de café...)
+  skins.py                  lista dos visuais de cada mascote (chave inglesa, xícara de café, chapéu de Natal...)
   logo.py                   a logo e o ícone da bandeja
   launcher.py               como o app chama a si mesmo (código-fonte ou .exe)
   autostart.py              início automático (usa a plataforma)
@@ -84,7 +84,7 @@ As regras (em uso, ocioso, fechado) e seus tempos ficam em `detector.get_states`
 **Um visual novo para um mascote** (como a xícara de café do Claude)
 
 1. Em `skins.py`, acrescente `{"id": "meu-visual", "available": True}` na lista da ferramenta.
-2. Desenhe-o em `render.py`: `draw_claude` e `draw_codex` têm o parâmetro `skin` (grade de células, em pixel-art); o visual só aparece enquanto a ferramenta está em uso.
+2. Desenhe-o em `render.py`: `draw_claude`, `draw_codex` e `draw_cursor` têm o parâmetro `skin` (grade de células, em pixel-art). Acessórios na mão (xícara) só aparecem enquanto a ferramenta está em uso; roupas, como o chapéu de Natal (`_with_pixel_hat`), aparecem sempre.
 3. Crie o nome `skin.<ferramenta>.<id>` em português e inglês em `i18n.py`; um teste confere.
 4. Ele aparece sozinho na página **Personagens** e vale na lock screen e no protetor.
 

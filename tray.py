@@ -16,7 +16,8 @@ import settings
 from detector import get_states
 from i18n import t
 from lockscreen import set_lockscreen
-from render import draw_claude, render
+from logo import mark
+from render import render
 
 APP_NAME = settings.APP_NAME
 OUT_DIR = settings.OUT_DIR
@@ -74,12 +75,7 @@ def session_locked():
 
 
 def make_icon(paused=False):
-    canvas = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    crab = draw_claude(60, tool=False)
-    if paused:
-        crab = crab.convert("LA").convert("RGBA")
-    canvas.paste(crab, ((64 - crab.width) // 2, (64 - crab.height) // 2), crab)
-    return canvas
+    return mark(64, paused)  # cadeado em pixel-art (cinza e apagado quando pausado)
 
 
 class App:

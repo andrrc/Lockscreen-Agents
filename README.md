@@ -1,4 +1,6 @@
-# Lockscreen Agents
+<p align="center"><img src="docs/logo.png" alt="Logo do Lockscreen Agents" width="128"></p>
+
+<h1 align="center">Lockscreen Agents</h1>
 
 **Português** · [English](#english)
 
@@ -52,7 +54,7 @@ pip install -r requirements.txt
 python install.py
 ```
 
-O `install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do mascote perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
+O `install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do cadeado perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
 
 Sem usar Git: baixe o ZIP em **Releases** (ou em *Code → Download ZIP*), extraia e rode os dois últimos comandos acima.
 
@@ -88,6 +90,7 @@ Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (co
 | `detector.py` | descobre o estado de cada ferramenta |
 | `render.py` | desenha os mascotes e a imagem da lock screen |
 | `lockscreen.py` | aplica a imagem como lock screen (API WinRT) |
+| `logo.py` | a logo (cadeado em pixel-art) e o ícone da bandeja |
 | `saver.py` | protetor de tela animado (Tk) |
 | `tray.py` | app da bandeja, junta tudo |
 | `settings_ui.py` | janela de configurações (Tk com controles desenhados à mão) |
@@ -142,7 +145,7 @@ pip install -r requirements.txt
 python install.py
 ```
 
-`install.py` copies the app to `%LOCALAPPDATA%\LockscreenAgents`, enables autostart (registry `Run` key plus a Startup-folder shortcut) and launches it. Look for the mascot icon near the clock. No Git? Download the ZIP from **Releases**, extract it and run the last two commands.
+`install.py` copies the app to `%LOCALAPPDATA%\LockscreenAgents`, enables autostart (registry `Run` key plus a Startup-folder shortcut) and launches it. Look for the padlock icon near the clock. No Git? Download the ZIP from **Releases**, extract it and run the last two commands.
 
 Uninstall with `python install.py --uninstall`.
 

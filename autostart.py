@@ -46,8 +46,15 @@ def enable(directory=None, python=None):
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
         winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, f'"{python}" "{tray}"')
     lnk = startup_lnk()
+    icon = ""
+    try:  # ícone da logo no atalho
+        import logo
+        logo.save_ico(directory / "logo.ico")
+        icon = f"$s.IconLocation='{directory / 'logo.ico'}';"
+    except Exception:  # noqa: BLE001
+        pass
     ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
-          f"$s.TargetPath='{python}';$s.Arguments='\"{tray}\"';"
+          f"$s.TargetPath='{python}';$s.Arguments='\"{tray}\"';{icon}"
           f"$s.WorkingDirectory='{directory}';$s.WindowStyle=7;$s.Save()")
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True,
                    creationflags=0x08000000)  # CREATE_NO_WINDOW

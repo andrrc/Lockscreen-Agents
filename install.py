@@ -16,7 +16,7 @@ import autostart
 APP_NAME = "LockscreenAgents"
 BASE = Path(os.environ["LOCALAPPDATA"]) / APP_NAME
 APP_DIR = BASE / "app"
-FILES = ["autostart.py", "detector.py", "i18n.py", "lockscreen.py", "render.py", "saver.py",
+FILES = ["autostart.py", "detector.py", "i18n.py", "lockscreen.py", "logo.py", "render.py", "saver.py",
          "settings.py", "settings_ui.py", "tray.py"]
 
 
@@ -57,7 +57,7 @@ def install():
     subprocess.Popen([str(pythonw()), str(APP_DIR / "tray.py")], cwd=APP_DIR,
                      creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | NEW_PROCESS_GROUP
     time.sleep(1)
-    print("App iniciado. Procure o ícone do mascote perto do relógio; clique duas vezes para as configurações.")
+    print("App iniciado. Procure o ícone do cadeado perto do relógio; clique duas vezes para as configurações.")
 
 
 def uninstall():

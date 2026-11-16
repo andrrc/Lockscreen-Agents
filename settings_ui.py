@@ -28,6 +28,7 @@ import autostart
 import settings
 from i18n import duration, t
 from render import ACCENT as TOOL_ACCENT
+from logo import logo
 from render import draw_claude, draw_codex, draw_cursor, render
 
 # ------------------------------------------------------------------ tema
@@ -632,7 +633,7 @@ class SettingsApp:
         self.nav_items = []
         c.create_rectangle(0, 0, px(SIDE_W), px(H), fill=hexc(SIDE), outline="")
         c.create_line(px(SIDE_W), 0, px(SIDE_W), px(H), fill=hexc((28, 28, 34)))
-        self.logo = ImageTk.PhotoImage(draw_claude(px(34), tool=False))
+        self.logo = ImageTk.PhotoImage(logo(px(36)))
         c.create_image(px(24), px(30), image=self.logo, anchor="nw")
         c.create_text(px(68), px(30), text=t("ui.title"), font=self.f["brand"], fill=hexc(TEXT), anchor="nw")
         c.create_text(px(68), px(52), text=t("ui.subtitle"), font=self.f["tiny"], fill=hexc(MUTED), anchor="nw")
@@ -1195,6 +1196,10 @@ def main():
     elif already_open():
         return
     set_dpi_aware()
+    try:  # identidade própria: o Windows não agrupa a janela com o Python na barra de tarefas
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("LockscreenAgents.Settings")
+    except Exception:  # noqa: BLE001
+        pass
     root = tk.Tk()
     S = root.winfo_fpixels("1i") / 96
     root.title(t("ui.title"))
@@ -1204,10 +1209,8 @@ def main():
     w, h = px(W), px(H)
     root.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 2 - px(20))}")
     try:
-        ico = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        crab = draw_claude(60, tool=False)
-        ico.paste(crab, ((64 - crab.width) // 2, (64 - crab.height) // 2), crab)
-        root.iconphoto(True, ImageTk.PhotoImage(ico))
+        root._icons = [ImageTk.PhotoImage(logo(n)) for n in (256, 64, 32)]  # guarda a referência
+        root.iconphoto(True, *root._icons)
     except Exception:  # noqa: BLE001
         pass
     root.attributes("-alpha", 0.0)
@@ -1227,6 +1230,7 @@ def main():
     root.protocol("WM_DELETE_WINDOW", close)
     fade(1.0)
     if shots:
+        root.geometry(f"+{max(0, (sw - w) // 2)}+0")  # longe da barra de tarefas (evita pegar miniaturas dela)
         root.attributes("-topmost", True)
         root.after(900, lambda: shoot(root, app, shots, 0))
     root.mainloop()

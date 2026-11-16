@@ -8,7 +8,7 @@ import json
 import os
 import time
 
-from . import platforms, templates
+from . import platforms, skins, templates
 
 APP_NAME = "LockscreenAgents"
 OUT_DIR = platforms.current().data_dir()
@@ -19,6 +19,7 @@ TOOLS = ("claude", "codex", "cursor")
 DEFAULTS = {
     "lang": "auto",            # auto | pt | en
     "template": templates.DEFAULT,  # modelo visual (veja templates.py)
+    "skins": skins.defaults(),      # visual de cada mascote (veja skins.py)
     "tools": {"claude": True, "codex": True, "cursor": True},
     "active_window": 180,      # s sem atividade nos arquivos até deixar de estar "em uso"
     "follow_focus": True,      # janela da ferramenta em foco + você ativo conta como "em uso"
@@ -53,6 +54,11 @@ def _clean(raw):
                             cfg["tools"][name] = bool(v[name])
             elif k == "lang":
                 cfg["lang"] = v if v in ("auto", "pt", "en") else "auto"
+            elif k == "skins":  # só aceita visuais já disponíveis
+                if isinstance(v, dict):
+                    for tool in skins.SKINS:
+                        if v.get(tool) in skins.available_ids(tool):
+                            cfg["skins"][tool] = v[tool]
             elif k == "template":  # só aceita modelos já disponíveis
                 cfg["template"] = v if v in templates.available_ids() else templates.DEFAULT
             elif isinstance(default, bool):
@@ -89,8 +95,8 @@ def save(cfg):
 def update(**changes):
     cfg = load()
     for k, v in changes.items():
-        if k == "tools":
-            cfg["tools"].update(v)
+        if k in ("tools", "skins"):
+            cfg[k].update(v)
         else:
             cfg[k] = v
     return save(cfg)

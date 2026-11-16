@@ -23,7 +23,7 @@ from tkinter import font as tkfont
 
 from PIL import Image, ImageDraw, ImageTk
 
-from . import autostart, launcher, platforms, settings, templates
+from . import autostart, launcher, platforms, settings, skins, templates
 from .i18n import duration, t
 from .logo import logo
 from .render import ACCENT as TOOL_ACCENT
@@ -192,6 +192,11 @@ def icon(name, size, color):
             d.line([(8 * u, 9 * u), (8 * u, 10.5 * u)], fill=c, width=lw)
             d.line([(16 * u, 9 * u), (16 * u, 10.5 * u)], fill=c, width=lw)
             dot(12, 15.8, 1.3)
+        elif name == "face":
+            d.ellipse([3 * u, 3 * u, 21 * u, 21 * u], outline=c, width=lw)
+            dot(8.8, 10, 1.3)
+            dot(15.2, 10, 1.3)
+            d.arc([7.5 * u, 8.5 * u, 16.5 * u, 17.5 * u], 25, 155, fill=c, width=lw)
         elif name == "layers":
             rr(4, 4, 16, 16, 2.6, outline=c)
             rr(8, 8, 20, 20, 2.6, fill=SIDE + (255,), outline=c)
@@ -207,15 +212,19 @@ def icon(name, size, color):
     return _photo(("ic", name, size, color), make)
 
 
-def mascot(key, size):
-    """Mascote em RGBA para a lista de ferramentas (colorido)."""
+def mascot(key, size, skin=None):
+    """Mascote em RGBA (colorido) com o visual `skin` (padrão: o da ferramenta)."""
+    skin = skin or skins.default(key)
+
     def make():
-        img = {"claude": lambda: draw_claude(size * 2, tool=True),
+        img = {"claude": lambda: draw_claude(size * 2, tool=True, skin=skin),
                "codex": lambda: draw_codex(size * 2),
                "cursor": lambda: draw_cursor(size * 2, active=True, glow=0.4)}[key]()
-        return img.resize((int(img.width * size / (size * 2)), int(img.height * size / (size * 2))), Image.LANCZOS)
+        w, h = img.width / 2, img.height / 2  # metade do tamanho desenhado (mais nítido)
+        k = min(1.0, size * 1.1 / w)  # visuais largos (xícara) encolhem para caber na lista
+        return img.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
 
-    return _photo(("mascot", key, size), make)
+    return _photo(("mascot", key, size, skin), make)
 
 
 # ------------------------------------------------------------------ animação
@@ -605,7 +614,7 @@ class Page:
 
 class SettingsApp:
     PAGES = [("overview", "nav.overview", "grid"), ("templates", "nav.templates", "layers"),
-             ("tools", "nav.tools", "chip"),
+             ("skins", "nav.skins", "face"), ("tools", "nav.tools", "chip"),
              ("detection", "nav.detection", "pulse"), ("saver", "nav.saver", "monitor"),
              ("general", "nav.general", "sliders"), ("how", "nav.how", "info")]
 
@@ -953,13 +962,35 @@ class SettingsApp:
             self.c.itemconfigure(row["pill"], image=rrect(px(92), px(26), px(13), (30, 30, 37), color))
             self.c.itemconfigure(row["pill_tx"], text=label, fill=hexc(color))
 
+    # -- personagens (visuais dos mascotes)
+    def page_skins(self):
+        self.header("skins.title", "skins.sub")
+        h, gap, cw, chh = 128, 12, 196, 66
+        for i, key in enumerate(settings.TOOLS):
+            y = 120 + i * (h + gap)
+            g = self.new_group()
+            self.hover_cards.append(g.card(CX, y, CW, h))
+            g.text(CX + 22, y + 18, t("tool." + key), self.f["label"], TEXT)
+            current = self.cfg["skins"][key]
+            for j, sk in enumerate(s_ for s_ in skins.SKINS[key] if s_["available"]):
+                cx, cy = CX + 22 + j * (cw + 12), y + 48
+                chip = g.card(cx, cy, cw, chh)
+                self.hover_cards.append(chip)
+                chip.active = sk["id"] == current
+                chip.set(chip.t)
+                spr = mascot(key, px(60), sk["id"])
+                g.img(cx + 14, cy + (chh - spr.height() / S) / 2, spr)
+                g.text(cx + 14 + 68, cy + chh / 2, t(f"skin.{key}.{sk['id']}"), self.f["small"],
+                       TEXT if chip.active else MUTED, anchor="w", width=cw - 14 - 68 - 8)
+                g.target(cx, cy, cw, chh, SkinHit(self, key, sk["id"]))
+
     # -- ferramentas
     def page_tools(self):
         self.header("tools.title", "tools.sub")
         for i, key in enumerate(settings.TOOLS):
             y = 120 + i * (CARD_H + 12)
             g = self.row(y, t("tool." + key), t(f"tools.{key}.desc"))
-            m = mascot(key, px(50))
+            m = mascot(key, px(50), self.cfg["skins"][key])
             g.img(CX + CW - 22 - 46 - 18 - 56, y + CARD_H / 2 - m.height() / 2 / S, m)
             Switch(self, g, CX + CW - 22 - 46, y + (CARD_H - 26) / 2, self.cfg["tools"][key],
                    lambda v, k=key: self.set_tool(k, v))
@@ -1055,6 +1086,16 @@ class SettingsApp:
         self.commit(tools=tools)
         self.states_dirty = True
         return True
+
+    def set_skin(self, tool, skin_id):
+        chosen = dict(self.cfg["skins"])
+        chosen[tool] = skin_id
+        self.cfg["skins"] = chosen
+        self.commit(skins=chosen)
+        self.states_dirty = True
+        _tpl_cache.clear()  # as miniaturas dos modelos usam o visual escolhido
+        self.__dict__.get("tpl_photos", {}).clear()
+        self.relang()  # redesenha a página com o visual marcado
 
     def toggle_saver(self, on):
         self.set_value("saver_on", on)
@@ -1205,7 +1246,8 @@ class SettingsApp:
             try:
                 if self.PAGES[self.page_idx][0] in ("overview", "how") or last is None:
                     st = get_states()
-                    tools = tuple(sorted(settings.get()["tools"].items()))
+                    tools = (tuple(sorted(settings.get()["tools"].items())),
+                             tuple(sorted(settings.get()["skins"].items())))
                     if st != last or tools != last_tools or getattr(self, "states_dirty", False) \
                             or getattr(self, "lang_seen", None) != settings.get()["lang"]:
                         self.states_dirty = False
@@ -1262,6 +1304,23 @@ class SettingsApp:
         except tk.TclError:
             return
         self.root.after(70, self.pulse)
+
+
+class SkinHit:
+    """Clique em um visual de mascote."""
+
+    def __init__(self, app, tool, skin_id):
+        self.app, self.tool, self.skin_id = app, tool, skin_id
+
+    def enter(self):
+        pass
+
+    def leave(self):
+        pass
+
+    def press(self, _x, _y):
+        if self.app.cfg["skins"][self.tool] != self.skin_id:
+            self.app.set_skin(self.tool, self.skin_id)
 
 
 class TemplateHit:

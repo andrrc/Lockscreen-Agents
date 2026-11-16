@@ -33,6 +33,7 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 ![Janela de configurações: visão geral com prévia ao vivo](docs/settings-overview.png)
 
 - **Modelos**: o visual da tela. Hoje existe o modelo **Mascotes**; os próximos aparecem como “em breve” (e há um botão para sugerir o seu).
+- **Personagens**: o visual de cada mascote. O Claude Code já pode segurar uma **xícara de café** (com vapor) em vez da chave inglesa; mais visuais estão a caminho.
 - **Ferramentas**: escolha quais mascotes aparecem (Claude Code, Codex, Cursor).
 - **Detecção**: tempo até ficar ocioso, tolerância para "fechado" e se a janela em foco conta como em uso.
 - **Protetor de tela**: ligar, abrir após N minutos, bloquear o PC ao fechar.
@@ -40,6 +41,8 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 - **Como funciona**: explica como o app sabe se uma IA está em uso e mostra, ao vivo, os sinais lidos de cada ferramenta.
 
 ![Janela de configurações: modelos](docs/settings-templates.png)
+
+![Janela de configurações: personagens, com a xícara de café escolhida](docs/settings-skins.png)
 
 ![Janela de configurações: detecção](docs/settings-detection.png)
 
@@ -149,7 +152,7 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 
 - **Lock screen**: renders an image with each tool's state and sets it as your lock screen whenever the state changes. Press `Win + L` to see it.
 - **Animated screensaver**: after a few idle minutes, a fullscreen scene with the animated mascots. Any key or mouse move closes it.
-- **Settings window**: modern and animated, with a live lock screen preview. Browse the templates (more are coming soon), see live how detection works, pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
+- **Settings window**: modern and animated, with a live lock screen preview. Browse the templates (more are coming soon), pick each mascot's look (Claude Code can hold a coffee cup), see live how detection works, pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
 - **Tray icon**: double-click to open the settings; the menu also pauses, refreshes the lock screen and tests the screensaver.
 - Starts with Windows.
 

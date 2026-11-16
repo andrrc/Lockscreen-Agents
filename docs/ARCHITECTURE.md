@@ -13,7 +13,8 @@ lockscreen_agents/          o app
   render.py                 desenha os mascotes e a imagem da lock screen
   settings.py               settings.json com validação
   i18n.py                   textos em português e inglês
-  templates.py              lista dos modelos (visuais)
+  templates.py              lista dos modelos (visuais da tela inteira)
+  skins.py                  lista dos visuais de cada mascote (chave inglesa, xícara de café...)
   logo.py                   a logo e o ícone da bandeja
   launcher.py               como o app chama a si mesmo (código-fonte ou .exe)
   autostart.py              início automático (usa a plataforma)
@@ -79,6 +80,13 @@ As regras (em uso, ocioso, fechado) e seus tempos ficam em `detector.get_states`
 3. Opcional: um desenho de conceito em `settings_ui.concept_preview`.
 4. Para lançar: escreva a função que desenha o modelo (como `render.render`), faça `tray.py` e
    `saver.py` escolherem o desenho pela chave `template` das configurações e troque `available` para `True`.
+
+**Um visual novo para um mascote** (como a xícara de café do Claude)
+
+1. Em `skins.py`, acrescente `{"id": "meu-visual", "available": True}` na lista da ferramenta.
+2. Desenhe-o em `render.py`: `draw_claude` tem o parâmetro `skin` (grade de células, em pixel-art); o visual só aparece enquanto a ferramenta está em uso.
+3. Crie o nome `skin.<ferramenta>.<id>` em português e inglês em `i18n.py`; um teste confere.
+4. Ele aparece sozinho na página **Personagens** e vale na lock screen e no protetor.
 
 **Uma ferramenta nova (além de Claude Code, Codex e Cursor)**
 

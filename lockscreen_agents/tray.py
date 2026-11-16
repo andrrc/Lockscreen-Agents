@@ -164,8 +164,8 @@ class App:
         while not self.stop.is_set():
             try:
                 cfg = settings.get()
-                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"])
-                if key != self.cfg_key:  # mudou ferramentas ou idioma: redesenha a lock screen
+                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], tuple(sorted(cfg["skins"].items())))
+                if key != self.cfg_key:  # mudou ferramentas, idioma ou visual: redesenha a lock screen
                     self.cfg_key = key
                     self.last_key = None
                     self.icon.update_menu()

@@ -26,7 +26,9 @@ MOVE_THRESHOLD = 12
 
 # chave, rótulo, função de desenho, anda?
 SPECS = [
-    ("claude", "Claude Code", lambda size, step, blink: draw_claude(size, step=step, blink=blink), True),
+    ("claude", "Claude Code",
+     lambda size, step, blink: draw_claude(size, step=step, blink=blink, skin=settings.get()["skins"]["claude"]),
+     True),
     ("codex", "Codex", lambda size, step, blink: draw_codex(size, step=step, blink=blink), True),
     ("cursor", "Cursor", lambda size, step, blink: draw_cursor(size), False),
 ]

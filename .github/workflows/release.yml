@@ -27,23 +27,23 @@ jobs:
       - name: Ler a versão
         id: ver
         shell: bash
-        run: echo "version=$(python -c 'from version import __version__; print(__version__)')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(python -c 'from lockscreen_agents.version import __version__; print(__version__)')" >> "$GITHUB_OUTPUT"
 
       - name: Conferir se a tag bate com a versão
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           if [ "${GITHUB_REF_NAME}" != "v${{ steps.ver.outputs.version }}" ]; then
-            echo "A tag ${GITHUB_REF_NAME} não bate com version.py (${{ steps.ver.outputs.version }})"; exit 1
+            echo "A tag ${GITHUB_REF_NAME} não bate com lockscreen_agents/version.py (${{ steps.ver.outputs.version }})"; exit 1
           fi
 
       - name: Gerar o executável
-        run: python build_exe.py
+        run: python packaging/windows/build_exe.py
 
       - name: Gerar o instalador
         run: |
           choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.ver.outputs.version }}" installer.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.ver.outputs.version }}" packaging\windows\installer.iss
 
       - name: Gerar a versão portátil (.zip) e os checksums
         shell: pwsh

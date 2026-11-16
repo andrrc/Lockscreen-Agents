@@ -1,0 +1,23 @@
+name: Sugerir um modelo (visual)
+description: Uma ideia de visual para a tela de bloqueio e o protetor de tela
+labels: ["modelo"]
+title: "Modelo: "
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Nome do modelo
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Como ele seria
+      description: Descreva o visual. Um desenho ou referência ajuda muito.
+    validations:
+      required: true
+  - type: textarea
+    id: states
+    attributes:
+      label: Como mostra os estados
+      description: Como aparecem "em uso", "ocioso" e "fechado" nesse modelo?

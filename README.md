@@ -65,17 +65,17 @@ Baixe o `LockscreenAgents-Setup-<versão>.exe` na página de **Releases** e exec
 git clone https://github.com/andrrc/lockscreen-agents.git
 cd lockscreen-agents
 pip install -r requirements.txt
-python install.py
+python packaging/windows/install.py
 ```
 
-O `install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do cadeado perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
+O `packaging/windows/install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do cadeado perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
 
 Sem usar Git: baixe o ZIP em **Releases** (ou em *Code → Download ZIP*), extraia e rode os dois últimos comandos acima.
 
 Para remover:
 
 ```bash
-python install.py --uninstall
+python packaging/windows/install.py --uninstall
 ```
 
 Isso desliga o início automático e fecha o app. A pasta `%LOCALAPPDATA%\LockscreenAgents` fica; apague se quiser.
@@ -92,46 +92,40 @@ Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (co
 
 ## Limitações
 
-- Só Windows. A lock screen é uma **imagem estática** atualizada a cada mudança de estado, não uma animação. A animação fica no protetor de tela.
+- Hoje só Windows (o macOS está em desenvolvimento, veja [docs/MACOS.md](docs/MACOS.md)). A lock screen é uma **imagem estática** atualizada a cada mudança de estado, não uma animação. A animação fica no protetor de tela.
 - O protetor é aberto pelo próprio app quando o PC fica parado (não é um arquivo `.scr`).
 - Idiomas disponíveis: português e inglês. Para adicionar outro, edite `i18n.py`.
-- Se o app não aparecer na bandeja depois de reiniciar o PC, abra `%LOCALAPPDATA%\LockscreenAgents\log.txt` e rode `python install.py` de novo.
+- Se o app não aparecer na bandeja depois de reiniciar o PC, abra `%LOCALAPPDATA%\LockscreenAgents\log.txt` e rode `python packaging/windows/install.py` de novo.
 
 ## Estrutura
 
-| Arquivo | Função |
-| --- | --- |
-| `detector.py` | descobre o estado de cada ferramenta |
-| `render.py` | desenha os mascotes e a imagem da lock screen |
-| `lockscreen.py` | aplica a imagem como lock screen (API WinRT) |
-| `logo.py` | a logo (cadeado em pixel-art) e o ícone da bandeja |
-| `saver.py` | protetor de tela animado (Tk) |
-| `tray.py` | app da bandeja, junta tudo |
-| `settings_ui.py` | janela de configurações (Tk com controles desenhados à mão) |
-| `settings.py` | lê e grava o `settings.json`, com validação |
-| `templates.py` | lista dos modelos (visuais), incluindo os “em breve” |
-| `i18n.py` | textos em português e inglês |
-| `autostart.py` | início automático com o Windows |
-| `app.py` | ponto de entrada único (`--settings`, `--saver`); é o que vira o `.exe` |
-| `launcher.py` | como o app chama a si mesmo (código-fonte ou `.exe`) |
-| `install.py` | instala a partir do código-fonte, liga o autostart e remove |
-| `build_exe.py` | gera o executável com o PyInstaller |
-| `installer.iss` | script do instalador (Inno Setup) |
-| `version.py` | número da versão |
-| `make_demo.py` | regenera as imagens da pasta `docs/` |
+```
+app.py                  entrada: python app.py [--settings | --saver /s]
+lockscreen_agents/      o app (bandeja, janela de configurações, protetor, detector, desenho)
+  platforms/            tudo que depende do sistema operacional (Windows pronto, macOS em rascunho)
+packaging/windows/      executável (PyInstaller), instalador (Inno Setup) e instalação pelo código-fonte
+tools/                  gera as imagens da pasta docs/
+tests/                  testes (pytest)
+docs/                   arquitetura, guia do macOS e imagens
+```
+
+Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Gerando o executável
 
 ```bash
 pip install -r requirements.txt pyinstaller
-python build_exe.py
+python packaging/windows/build_exe.py
 ```
 
-Gera `build/dist/LockscreenAgents/LockscreenAgents.exe`. Para o instalador, instale o [Inno Setup 6](https://jrsoftware.org/isinfo.php) e rode `ISCC.exe /DMyAppVersion=0.1.0 installer.iss`. Ao enviar uma tag `vX.Y.Z` (igual ao `version.py`), o workflow `.github/workflows/release.yml` faz tudo isso e publica a Release.
+Gera `build/dist/LockscreenAgents/LockscreenAgents.exe`. Para o instalador, instale o [Inno Setup 6](https://jrsoftware.org/isinfo.php) e rode `ISCC.exe /DMyAppVersion=0.1.0 packaging\windows\installer.iss`. Ao enviar uma tag `vX.Y.Z` (igual ao `lockscreen_agents/version.py`), o workflow `.github/workflows/release.yml` faz tudo isso e publica a Release.
 
 ## Contribuindo
 
-Issues e PRs são bem-vindos: novos mascotes ou ferramentas, traduções, melhorias na detecção. Para testar sem instalar, rode `python tray.py` na pasta do projeto.
+Issues e PRs são bem-vindos: novos mascotes ou ferramentas, traduções, melhorias na detecção.
+Veja o [guia de contribuição](CONTRIBUTING.md) para rodar o projeto, os testes e o fluxo de pull request.
+
+**Port para macOS:** em andamento, o ponto de partida é o [guia do macOS](docs/MACOS.md).
 
 ## Licença
 
@@ -175,12 +169,12 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 git clone https://github.com/andrrc/lockscreen-agents.git
 cd lockscreen-agents
 pip install -r requirements.txt
-python install.py
+python packaging/windows/install.py
 ```
 
 `install.py` copies the app to `%LOCALAPPDATA%\LockscreenAgents`, enables autostart (registry `Run` key plus a Startup-folder shortcut) and launches it. Look for the padlock icon near the clock. No Git? Download the ZIP from **Releases**, extract it and run the last two commands.
 
-Uninstall with `python install.py --uninstall`.
+Uninstall with `python packaging/windows/install.py --uninstall`.
 
 ### How it detects usage
 
@@ -194,7 +188,7 @@ Recent file activity or the tool in focus while you are active → **in use**. P
 
 ### Limitations
 
-- Windows only. The lock screen is a **static image** refreshed on state changes; the animation lives in the screensaver, which the tray app launches when the PC is idle (it is not a `.scr` file).
+- Windows only for now (macOS is in progress, see [docs/MACOS.md](docs/MACOS.md)). The lock screen is a **static image** refreshed on state changes; the animation lives in the screensaver, which the tray app launches when the PC is idle (it is not a `.scr` file).
 - Available languages: Portuguese and English. To add another one, edit `i18n.py`.
 
 ### License

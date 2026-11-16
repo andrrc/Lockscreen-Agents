@@ -1,28 +1,14 @@
-"""Ponto de entrada único do Lockscreen Agents.
+"""Atalho para rodar o app a partir do código-fonte: `python app.py [--settings | --saver /s]`.
 
-    app.py                 bandeja (o app em si)
-    app.py --settings      janela de configurações
-    app.py --saver /s      protetor de tela animado (aceita --seconds N para testes)
-
-É o que o PyInstaller empacota em LockscreenAgents.exe.
+O código fica no pacote lockscreen_agents/. Este arquivo existe para o app poder chamar a si mesmo
+(launcher.py) e para o PyInstaller ter um script de entrada.
 """
 import sys
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-def main():
-    args = sys.argv[1:]
-    mode = args.pop(0)[2:] if args and args[0] in ("--tray", "--settings", "--saver") else "tray"
-    sys.argv = [sys.argv[0]] + args  # cada modo lê só os argumentos que são dele
-    if mode == "settings":
-        import settings_ui
-        settings_ui.main()
-    elif mode == "saver":
-        import saver
-        saver.main()
-    else:
-        import tray
-        tray.main()
-
+from lockscreen_agents.app import main  # noqa: E402
 
 if __name__ == "__main__":
     main()

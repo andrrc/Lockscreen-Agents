@@ -1,0 +1,29 @@
+name: Relatar um problema
+description: Algo não funciona como deveria
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: os
+    attributes:
+      label: Sistema
+      options: [Windows 11, Windows 10, macOS, Outro]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão do app
+      description: Aparece no nome do instalador (por exemplo 0.1.1)
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: O que você esperava e o que viu. Se puder, ajuda um print da janela de configurações (página "Como funciona").
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Registro (opcional)
+      description: Últimas linhas de `log.txt` na pasta de dados do app (no Windows, `%LOCALAPPDATA%\LockscreenAgents`).
+      render: text

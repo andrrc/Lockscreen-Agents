@@ -1,8 +1,6 @@
 """Textos do app em português e inglês. `t("chave")` usa o idioma das configurações
 ("auto" segue o idioma do Windows)."""
-import ctypes
-
-import settings
+from . import platforms, settings
 
 STRINGS = {
     "pt": {
@@ -203,9 +201,9 @@ STRINGS = {
 
 
 def system_lang():
-    """'pt' se o Windows está em português, senão 'en'."""
+    """'pt' se o sistema está em português, senão 'en'."""
     try:
-        return "pt" if (ctypes.windll.kernel32.GetUserDefaultUILanguage() & 0x3FF) == 0x16 else "en"
+        return platforms.current().system_language()
     except Exception:  # noqa: BLE001
         return "en"
 

@@ -1,8 +1,10 @@
 ; Instalador do Lockscreen Agents (Inno Setup 6).
 ;
-; Uso:  python build_exe.py
-;       ISCC.exe /DMyAppVersion=0.1.0 installer.iss
+; Uso (na raiz do projeto):
+;       python packaging/windows/build_exe.py
+;       ISCC.exe /DMyAppVersion=0.1.0 packaging\windows\installer.iss
 ; Gera build\installer\LockscreenAgents-Setup-<versão>.exe
+; Os caminhos abaixo são relativos a esta pasta (packaging\windows).
 ;
 ; Instala só para o usuário atual (sem pedir administrador), porque o app é por usuário:
 ; configurações em %LOCALAPPDATA%\LockscreenAgents e início automático em HKCU.
@@ -24,16 +26,16 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputDir=build\installer
+OutputDir=..\..\build\installer
 OutputBaseFilename=LockscreenAgents-Setup-{#MyAppVersion}
-SetupIconFile=build\logo.ico
+SetupIconFile=..\..\build\logo.ico
 UninstallDisplayIcon={app}\{#MyAppExe}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-LicenseFile=LICENSE
+LicenseFile=..\..\LICENSE
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -51,7 +53,7 @@ english.AutoStartGroup=Options:
 english.RunNow=Open Lockscreen Agents
 
 [Files]
-Source: "build\dist\LockscreenAgents\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\..\build\dist\LockscreenAgents\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"

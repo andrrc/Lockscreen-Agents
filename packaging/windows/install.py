@@ -1,46 +1,47 @@
 """Instala o Lockscreen Agents (a partir do código-fonte) numa pasta estável e liga o início
 automático com o Windows. Quem usa o instalador .exe não precisa disto.
 
-Uso:
-    python install.py              instala, liga o autostart e inicia o app
-    python install.py --uninstall  remove o autostart e encerra o app
+Uso (na raiz do projeto):
+    python packaging/windows/install.py              instala, liga o autostart e inicia o app
+    python packaging/windows/install.py --uninstall  remove o autostart e encerra o app
 """
-import os
 import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-import autostart
-import launcher
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
-APP_NAME = "LockscreenAgents"
-BASE = Path(os.environ["LOCALAPPDATA"]) / APP_NAME
+if sys.platform != "win32":
+    raise SystemExit("Este instalador é só para Windows. Para macOS veja docs/MACOS.md.")
+
+from lockscreen_agents import autostart, launcher, platforms, settings  # noqa: E402
+
+BASE = settings.OUT_DIR
 APP_DIR = BASE / "app"
-FILES = ["app.py", "autostart.py", "detector.py", "i18n.py", "launcher.py", "lockscreen.py", "logo.py",
-         "render.py", "saver.py", "settings.py", "settings_ui.py", "templates.py", "tray.py", "version.py"]
+# arquivos soltos das versões antigas (antes do pacote lockscreen_agents/)
+LEGACY = ["autostart.py", "detector.py", "i18n.py", "launcher.py", "lockscreen.py", "logo.py", "render.py",
+          "saver.py", "settings.py", "settings_ui.py", "templates.py", "tray.py", "version.py", "logo.ico"]
 
 
 def stop_running():
     """Encerra instâncias anteriores (bandeja, janela de configurações e protetor)."""
-    ps = (
-        "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^pythonw?\\.exe$' -and "
-        "$_.CommandLine -match '(app|tray|settings_ui|saver)\\.py' } | ForEach-Object "
-        "{ Stop-Process -Id $_.ProcessId -Force; 'encerrado PID ' + $_.ProcessId }"
-    )
-    out = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                         capture_output=True, text=True).stdout.strip()
-    if out:
-        print(out)
+    for line in platforms.current().stop_app_processes([r"app\.py"]):
+        print(line)
 
 
 def install():
-    src = Path(__file__).resolve().parent
     stop_running()
     APP_DIR.mkdir(parents=True, exist_ok=True)
-    for name in FILES:
-        shutil.copy2(src / name, APP_DIR / name)
+    for name in LEGACY:
+        (APP_DIR / name).unlink(missing_ok=True)
+    shutil.copy2(ROOT / "app.py", APP_DIR / "app.py")
+    dst = APP_DIR / "lockscreen_agents"
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(ROOT / "lockscreen_agents", dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     print(f"Arquivos copiados para {APP_DIR}")
 
     # Dois caminhos (Run do registro + atalho em Inicializar): no logon de 16/11 o Windows ignorou

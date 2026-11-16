@@ -223,7 +223,7 @@ def _font(size):
 def render(status, step=None, size=(W, H)):
     """status: {'claude': 'working'|'open'|'closed'|'off', ...} (aceita também True/False).
     Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza."""
-    from i18n import t
+    from .i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)
     d = ImageDraw.Draw(img)

@@ -7,12 +7,11 @@ Quem altera usa `update(chave=valor, ...)`, que grava de forma atômica.
 import json
 import os
 import time
-from pathlib import Path
 
-import templates
+from . import platforms, templates
 
 APP_NAME = "LockscreenAgents"
-OUT_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME
+OUT_DIR = platforms.current().data_dir()
 SETTINGS = OUT_DIR / "settings.json"
 
 TOOLS = ("claude", "codex", "cursor")

@@ -4,23 +4,19 @@ Quem está ativo anda (colorido); quem está ocioso fica parado em cinza.
 Argumentos do Windows: /s (exibir), /c (configurar), /p <hwnd> (miniatura).
 Extra para testes: --seconds N (fecha sozinho depois de N segundos).
 """
-import ctypes
-import ctypes.wintypes
 import math
-import os
 import random
 import sys
 import time
 import tkinter as tk
 import traceback
-from pathlib import Path
 
 from PIL import ImageTk
 
-import settings
-from detector import get_states
-from i18n import t
-from render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor
+from . import platforms, settings
+from .detector import get_states
+from .i18n import t
+from .render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor
 
 FPS = 30
 FRAME_MS = 1000 // FPS
@@ -36,7 +32,7 @@ SPECS = [
 ]
 
 
-LOG = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "LockscreenAgents" / "saver.log"
+LOG = settings.OUT_DIR / "saver.log"
 
 
 def _log(msg):
@@ -53,30 +49,7 @@ def hexcolor(rgb):
 
 
 def set_dpi_aware():
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except Exception:  # noqa: BLE001
-        try:
-            ctypes.windll.user32.SetProcessDPIAware()
-        except Exception:  # noqa: BLE001
-            pass
-
-
-def monitors():
-    rects = []
-    proc_t = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p,
-                                ctypes.POINTER(ctypes.wintypes.RECT), ctypes.c_void_p)
-
-    def cb(_hmon, _hdc, rect, _data):
-        r = rect.contents
-        rects.append((r.left, r.top, r.right, r.bottom))
-        return 1
-
-    ctypes.windll.user32.EnumDisplayMonitors(None, None, proc_t(cb), 0)
-    if not rects:
-        u = ctypes.windll.user32
-        rects = [(0, 0, u.GetSystemMetrics(0), u.GetSystemMetrics(1))]
-    return rects
+    platforms.current().init_ui_process("LockscreenAgents.Saver")
 
 
 class Actor:
@@ -164,10 +137,10 @@ class Actor:
 
 class Scene:
     def __init__(self, canvas, rect, origin):
-        l, t, r, b = rect
+        left, top, right, bottom = rect
         self.canvas = canvas
-        self.x0, self.y0 = l - origin[0], t - origin[1]
-        self.w, self.h = r - l, b - t
+        self.x0, self.y0 = left - origin[0], top - origin[1]
+        self.w, self.h = right - left, bottom - top
         self.size = int(min(self.w / 3 * 0.6, self.h * 0.42))
         self.ground = self.y0 + int(self.h * 0.60)
         canvas.create_line(self.x0, self.ground + 4, self.x0 + self.w, self.ground + 4, fill="#1d1d22")
@@ -186,13 +159,12 @@ class Scene:
 
 def run_saver(seconds=None):
     set_dpi_aware()
-    mons = monitors()
+    root = tk.Tk()
+    mons = platforms.current().monitors(root)
     vx = min(m[0] for m in mons)
     vy = min(m[1] for m in mons)
     vw = max(m[2] for m in mons) - vx
     vh = max(m[3] for m in mons) - vy
-
-    root = tk.Tk()
 
     def on_error(exc, val, tb):  # qualquer erro: registra e fecha (nunca deixa a tela presa)
         _log("erro: " + "".join(traceback.format_exception(exc, val, tb)))
@@ -263,10 +235,10 @@ def main():
     if first.startswith("/p") or first.startswith("-p"):
         return  # miniatura nas configurações: não faz nada
     if first.startswith("/c") or first.startswith("-c"):
-        ctypes.windll.user32.MessageBoxW(
-            0, "Lockscreen Agents: sem opções de configuração.\n"
-               "Quem está ativo (Claude Code, Codex, Cursor) anda; os ociosos ficam parados em cinza.",
-            "Lockscreen Agents", 0x40)
+        platforms.current().show_message(
+            "Lockscreen Agents",
+            "Lockscreen Agents: sem opções de configuração.\n"
+            "Quem está ativo (Claude Code, Codex, Cursor) anda; os ociosos ficam parados em cinza.")
         return
     run_saver(seconds)
 

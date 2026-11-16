@@ -1,6 +1,5 @@
 """Ícone na bandeja: monitora Claude Code, Codex e Cursor, atualiza a lock screen
 e abre o protetor de tela animado quando o PC fica ocioso."""
-import ctypes
 import json
 import os
 import subprocess
@@ -8,19 +7,14 @@ import sys
 import threading
 import time
 import traceback
-from pathlib import Path
 
 import pystray
-from PIL import Image
 
-import launcher
-import settings
-import detector
-from detector import get_states
-from i18n import t
-from lockscreen import set_lockscreen
-from logo import mark
-from render import render
+from . import detector, launcher, platforms, settings
+from .detector import get_states
+from .i18n import t
+from .logo import mark
+from .render import render
 
 APP_NAME = settings.APP_NAME
 OUT_DIR = settings.OUT_DIR
@@ -40,41 +34,19 @@ def log(msg):
         pass
 
 
-_mutex = None
-
-
 def single_instance():
     """Impede duas cópias rodando ao mesmo tempo."""
-    global _mutex
-    _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\LockscreenAgentsTray")
-    return ctypes.windll.kernel32.GetLastError() != 183  # ERROR_ALREADY_EXISTS
-
-
-class LASTINPUTINFO(ctypes.Structure):
-    _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+    return platforms.current().single_instance("LockscreenAgentsTray")
 
 
 def idle_seconds():
     """Segundos desde o último teclado/mouse."""
-    info = LASTINPUTINFO()
-    info.cbSize = ctypes.sizeof(info)
-    if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info)):
-        return 0.0
-    k32 = ctypes.windll.kernel32
-    k32.GetTickCount.restype = ctypes.c_uint
-    return ((k32.GetTickCount() - info.dwTime) & 0xFFFFFFFF) / 1000.0
+    return platforms.current().idle_seconds()
 
 
 def session_locked():
-    """True se a área de trabalho de entrada não é a do usuário (tela bloqueada, UAC...)."""
-    u = ctypes.windll.user32
-    u.OpenInputDesktop.restype = ctypes.c_void_p
-    u.CloseDesktop.argtypes = [ctypes.c_void_p]
-    h = u.OpenInputDesktop(0, False, 0x0100)  # DESKTOP_SWITCHDESKTOP
-    if not h:
-        return True
-    u.CloseDesktop(h)
-    return False
+    """True se a tela está bloqueada (ou a sessão não é a ativa)."""
+    return platforms.current().session_locked()
 
 
 def write_status(states):
@@ -145,7 +117,7 @@ class App:
         self.wake.set()
 
     def _open_folder(self, _icon, _item):
-        os.startfile(OUT_DIR)
+        platforms.current().open_path(OUT_DIR)
 
     def _quit(self, icon, _item):
         self.stop.set()
@@ -159,7 +131,7 @@ class App:
         self.n += 1
         path = OUT_DIR / f"lock_{self.n % 2}.png"  # nome alternado: o Windows cacheia pelo caminho
         render(status).save(path)
-        set_lockscreen(path)
+        platforms.current().set_lock_screen(path)
         log(f"lock screen -> {status}")
 
     # ---- protetor de tela ----
@@ -177,7 +149,7 @@ class App:
             self.armed = False  # só reabre depois que o usuário voltar a usar o PC
             if was_auto and settings.get()["lock_after"] and not session_locked():
                 log("bloqueando o PC (opção ligada)")
-                ctypes.windll.user32.LockWorkStation()
+                platforms.current().lock_session()
             return
         idle = idle_seconds()
         if idle < 10:

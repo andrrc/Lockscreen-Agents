@@ -1,7 +1,13 @@
 """Gera as imagens do README (pasta docs/): lock screen em vários estados e GIFs dos mascotes."""
+import sys
+from pathlib import Path
+
 from PIL import Image, ImageDraw
 
-from render import BG, draw_claude, draw_codex, render
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from lockscreen_agents.render import BG, draw_claude, draw_codex, render  # noqa: E402
 
 W, H = 900, 300
 
@@ -41,6 +47,7 @@ def poses(name, draw, size):
 
 if __name__ == "__main__":
     import os
+    os.chdir(ROOT)
     os.makedirs("docs", exist_ok=True)
     # lock screen: Claude em uso, Codex ocioso, Cursor fechado / todos em uso
     render({"claude": "working", "codex": "open", "cursor": "closed"}).save("docs/lock-states.png")

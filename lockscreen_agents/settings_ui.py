@@ -8,32 +8,26 @@ Tudo é salvo na hora em settings.json; a bandeja percebe a mudança sozinha.
 Uso: python settings_ui.py            abre a janela
      python settings_ui.py --shot DIR salva uma imagem de cada página (para testes)
 """
-import ctypes
 import itertools
 import json
-import os
 import queue
 import subprocess
 import sys
 import threading
 import time
-import traceback
 import tkinter as tk
+import traceback
 import webbrowser
-from ctypes import wintypes
 from pathlib import Path
 from tkinter import font as tkfont
 
 from PIL import Image, ImageDraw, ImageTk
 
-import autostart
-import launcher
-import settings
-import templates
-from i18n import duration, t
-from render import ACCENT as TOOL_ACCENT
-from logo import logo
-from render import draw_claude, draw_codex, draw_cursor, render
+from . import autostart, launcher, platforms, settings, templates
+from .i18n import duration, t
+from .logo import logo
+from .render import ACCENT as TOOL_ACCENT
+from .render import draw_claude, draw_codex, draw_cursor, render
 
 # ------------------------------------------------------------------ tema
 BG = (14, 14, 17)
@@ -924,7 +918,7 @@ class SettingsApp:
                 return data["signals"], True
         except (OSError, ValueError, KeyError):
             pass
-        import detector
+        from . import detector
         return dict(detector.LAST), False
 
     def _ago(self, age):
@@ -1022,7 +1016,7 @@ class SettingsApp:
         y += CARD_H + 12
         g = self.row(y, t("gen.folder.t"), t("gen.folder.d"))
         Button(self, g, CX + CW - 22 - 110, y + (CARD_H - 38) / 2, 110, 38, t("gen.folder.b"),
-               lambda: os.startfile(settings.OUT_DIR))
+               lambda: platforms.current().open_path(settings.OUT_DIR))
         y += CARD_H + 12
         g = self.row(y, t("gen.reset.t"), t("gen.reset.d"))
         self.reset_btn = Button(self, g, CX + CW - 22 - 130, y + (CARD_H - 38) / 2, 130, 38, t("gen.reset.b"),
@@ -1205,7 +1199,7 @@ class SettingsApp:
 
     # ---- atualização ao vivo
     def worker(self):
-        from detector import get_states
+        from .detector import get_states
         last, last_tools = None, None
         while self.alive:
             try:
@@ -1375,52 +1369,12 @@ class NavHit:
 
 
 # ------------------------------------------------------------------ janela
-def set_dpi_aware():
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except Exception:  # noqa: BLE001
-        try:
-            ctypes.windll.user32.SetProcessDPIAware()
-        except Exception:  # noqa: BLE001
-            pass
-
-
-def style_titlebar(root):
-    """Barra de título escura e na mesma cor do fundo (Windows 10 recente / 11)."""
-    try:
-        user32, dwm = ctypes.windll.user32, ctypes.windll.dwmapi
-        user32.GetParent.restype = wintypes.HWND
-        hwnd = user32.GetParent(root.winfo_id())
-        dwm.DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
-
-        def put(attr, val):
-            v = ctypes.c_int(val)
-            dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(v), ctypes.sizeof(v))
-
-        bgr = lambda c: c[0] | (c[1] << 8) | (c[2] << 16)  # noqa: E731
-        put(20, 1)            # modo escuro
-        put(35, bgr(BG))      # cor da barra de título
-        put(34, bgr(BG))      # cor da borda
-        put(36, bgr(TEXT))    # cor do texto
-    except Exception:  # noqa: BLE001
-        pass
-
-
-_mutex = None
-
-
 def already_open():
     """True se outra janela de configurações já está aberta (e a traz para a frente)."""
-    global _mutex
-    _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\LockscreenAgentsSettings")
-    if ctypes.windll.kernel32.GetLastError() != 183:
+    plat = platforms.current()
+    if plat.single_instance("LockscreenAgentsSettings"):
         return False
-    user32 = ctypes.windll.user32
-    user32.FindWindowW.restype = wintypes.HWND
-    hwnd = user32.FindWindowW(None, t("ui.title"))
-    if hwnd:
-        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-        user32.SetForegroundWindow(hwnd)
+    plat.focus_window(t("ui.title"))
     return True
 
 
@@ -1432,13 +1386,10 @@ def main():
         shots.mkdir(parents=True, exist_ok=True)
     elif already_open():
         return
-    set_dpi_aware()
-    try:  # identidade própria: o Windows não agrupa a janela com o Python na barra de tarefas
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("LockscreenAgents.Settings")
-    except Exception:  # noqa: BLE001
-        pass
+    plat = platforms.current()
+    plat.init_ui_process("LockscreenAgents.Settings")
     root = tk.Tk()
-    S = root.winfo_fpixels("1i") / 96
+    S = plat.ui_scale(root)
     root.title(t("ui.title"))
     root.configure(bg=hexc(BG))
     root.resizable(False, False)
@@ -1453,7 +1404,7 @@ def main():
     root.attributes("-alpha", 0.0)
     root.report_callback_exception = lambda *a: log("erro: " + "".join(traceback.format_exception(*a)))
     root.update_idletasks()
-    style_titlebar(root)
+    plat.style_window(root, BG, TEXT, BG)
     app = SettingsApp(root)
 
     def fade(to, done=None):
@@ -1475,7 +1426,6 @@ def main():
 
 def shoot(root, app, folder, i):
     """Modo de teste: tira uma foto da janela de cada página e fecha."""
-    from PIL import ImageGrab
     if i >= len(app.PAGES):
         app.alive = False
         root.destroy()

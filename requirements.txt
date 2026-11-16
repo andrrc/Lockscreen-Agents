@@ -1,8 +1,8 @@
 pillow
 pystray
-winrt-runtime
-winrt-Windows.Foundation
-winrt-Windows.Foundation.Collections
-winrt-Windows.Storage
-winrt-Windows.Storage.Streams
-winrt-Windows.System.UserProfile
+winrt-runtime; sys_platform == "win32"
+winrt-Windows.Foundation; sys_platform == "win32"
+winrt-Windows.Foundation.Collections; sys_platform == "win32"
+winrt-Windows.Storage; sys_platform == "win32"
+winrt-Windows.Storage.Streams; sys_platform == "win32"
+winrt-Windows.System.UserProfile; sys_platform == "win32"

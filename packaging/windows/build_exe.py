@@ -1,7 +1,7 @@
 """Gera o executável (pasta build/dist/LockscreenAgents/) com o PyInstaller.
 
-Uso: pip install pyinstaller
-     python build_exe.py
+Uso: pip install -r requirements.txt pyinstaller
+     python packaging/windows/build_exe.py
 
 O resultado é uma pasta (não um arquivo único): abre mais rápido e costuma gerar menos alertas
 de antivírus. O instalador (installer.iss, Inno Setup) empacota essa pasta.
@@ -9,13 +9,16 @@ de antivírus. O instalador (installer.iss, Inno Setup) empacota essa pasta.
 import sys
 from pathlib import Path
 
-from version import __version__
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
-ROOT = Path(__file__).resolve().parent
+from lockscreen_agents.version import __version__  # noqa: E402
+
 BUILD = ROOT / "build"
 NAME = "LockscreenAgents"
 HIDDEN = [  # módulos que o PyInstaller não enxerga sozinho
     "pystray._win32",
+    "lockscreen_agents.platforms.windows",
     "winrt.runtime",
     "winrt.windows.foundation",
     "winrt.windows.foundation.collections",
@@ -51,7 +54,8 @@ def version_file():
 
 def main():
     import PyInstaller.__main__
-    import logo
+
+    from lockscreen_agents import logo
 
     BUILD.mkdir(exist_ok=True)
     ico = BUILD / "logo.ico"
@@ -63,6 +67,7 @@ def main():
         "--windowed", "--onedir",
         "--icon", str(ico),
         "--version-file", str(version_file()),
+        "--paths", str(ROOT),
         "--distpath", str(BUILD / "dist"),
         "--workpath", str(BUILD / "work"),
         "--specpath", str(BUILD),

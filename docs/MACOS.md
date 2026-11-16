@@ -42,7 +42,7 @@ Vá anotando o que quebra. A ordem sugerida abaixo vai do mais fácil ao mais di
 | 8 | `autostart_*` | LaunchAgent em `~/Library/LaunchAgents` | rascunho |
 | 9 | `ui_scale`, `style_window`, `monitors` | Tk no macOS: conferir tela Retina, barra de título, várias telas | **verificar** |
 | 10 | `session_locked`, `lock_session` | Quartz (`CGSSessionScreenIsLocked`); bloquear a tela | **TODO** |
-| 11 | `set_lock_screen` | troca o papel de parede (opt-in `lock_wallpaper`) e restaura o original | testado (osascript) |
+| 11 | `set_lock_screen`, `restore_lock_screen`, `has_pending_restore` | troca o papel de parede (opt-in `lock_wallpaper`); o original fica em `original_wallpaper.txt` e volta ao desbloquear, ao pausar, ao sair, no menu da bandeja, na próxima inicialização (se o app caiu) ou com `python app.py --restore-wallpaper` | testado (osascript) |
 | 12 | Empacotamento | `.app` com PyInstaller ou py2app, assinatura e notarização | **TODO** |
 
 Ao terminar um item, atualize a coluna Status e abra um pull request pequeno. Um item por PR facilita

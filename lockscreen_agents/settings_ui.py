@@ -1027,6 +1027,10 @@ class SettingsApp:
                                  self.cfg["idle_min"], lambda v: t("unit.min", n=v),
                                  lambda v: self.set_value("idle_min", v), enabled=self.cfg["saver_on"])
         y = 120 + 2 * (CARD_H + 12)
+        g = self.row(y, t("sv.media.t"), t("sv.media.d"))
+        self.sv["media"] = Switch(self, g, CX + CW - 22 - 46, y + (CARD_H - 26) / 2,
+                                  self.cfg["saver_skip_media"], lambda v: self.set_value("saver_skip_media", v))
+        y = 120 + 3 * (CARD_H + 12)
         g = self.row(y, t("sv.lock.t"), t("sv.lock.d"))
         self.sv["lock"] = Switch(self, g, CX + CW - 22 - 46, y + (CARD_H - 26) / 2, self.cfg["lock_after"],
                                  lambda v: self.set_value("lock_after", v))

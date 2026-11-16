@@ -48,3 +48,8 @@ def test_reset_restores_defaults():
 def test_lock_wallpaper_is_off_by_default_and_saved():
     assert settings.load()["lock_wallpaper"] is False
     assert settings.update(lock_wallpaper=True)["lock_wallpaper"] is True
+
+
+def test_saver_waits_for_video_by_default():
+    assert settings.load()["saver_skip_media"] is True
+    assert settings.save({"saver_skip_media": False})["saver_skip_media"] is False

@@ -113,3 +113,34 @@ def test_restore_fails_loudly_if_the_wallpaper_did_not_change(mac, tmp_path):
     with pytest.raises(RuntimeError):
         mac.restore_lock_screen()
     assert mac.has_pending_restore()  # continua pendente para tentar de novo
+
+
+PMSET_PLAYING = """Assertion status system-wide:
+   UserIsActive                   1
+   PreventUserIdleDisplaySleep    1
+   PreventUserIdleSystemSleep     1
+"""
+PMSET_IDLE = PMSET_PLAYING.replace("PreventUserIdleDisplaySleep    1", "PreventUserIdleDisplaySleep    0")
+# caffeinate -i (só impede o sistema de dormir) não deve contar como vídeo
+PMSET_SYSTEM_ONLY = PMSET_IDLE + "   NoIdleSleepAssertion           1\n"
+
+
+@pytest.mark.parametrize("output,blocked", [(PMSET_PLAYING, True), (PMSET_IDLE, False),
+                                             (PMSET_SYSTEM_ONLY, False), ("", False)])
+def test_macos_detects_video_through_the_display_assertion(monkeypatch, output, blocked):
+    from lockscreen_agents.platforms import macos
+    monkeypatch.setattr(macos, "_run", lambda *a: output)
+    assert MacPlatform().display_sleep_blocked() is blocked
+
+
+def test_macos_pmset_failure_does_not_block_the_saver(monkeypatch):
+    from lockscreen_agents.platforms import macos
+
+    def boom(*a):
+        raise OSError("sem pmset")
+    monkeypatch.setattr(macos, "_run", boom)
+    assert MacPlatform().display_sleep_blocked() is False
+
+
+def test_default_platform_never_blocks_the_saver():
+    assert base.Platform().display_sleep_blocked() is False

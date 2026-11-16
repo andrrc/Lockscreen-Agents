@@ -27,6 +27,7 @@ DEFAULTS = {
     "close_grace": 25,         # s sem ver o processo até marcar "fechado"
     "saver_on": True,
     "idle_min": 5,             # min sem mexer no PC até abrir o protetor
+    "saver_skip_media": True,  # não abre o protetor durante vídeo, chamada ou apresentação
     "lock_after": False,
     "lock_wallpaper": False,   # só macOS: troca o papel de parede (a lock screen mostra ele)
 }

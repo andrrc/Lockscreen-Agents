@@ -33,16 +33,16 @@ Vá anotando o que quebra. A ordem sugerida abaixo vai do mais fácil ao mais di
 | # | Método | Ideia para o macOS | Status |
 | --- | --- | --- | --- |
 | 1 | `data_dir` | `~/Library/Application Support/LockscreenAgents` | escrito |
-| 2 | `running_processes` | `ps -axo comm=` (nomes em minúsculas) | rascunho |
+| 2 | `running_processes` | `ps -axo comm=` (nomes em minúsculas) | testado (Claude) |
 | 3 | `PROCESS_NAMES`, `FOCUS_MATCH` | conferir os nomes reais: Claude, Codex e Cursor | **verificar** |
-| 4 | `idle_seconds` | `ioreg -c IOHIDSystem` (HIDIdleTime, em nanossegundos) | rascunho |
-| 5 | `foreground_app_path` | `osascript` com System Events (pede permissão de Automação) | rascunho |
+| 4 | `idle_seconds` | `ioreg -c IOHIDSystem` (HIDIdleTime, em nanossegundos) | testado |
+| 5 | `foreground_app_path` | `osascript` com System Events (pede permissão de Automação) | testado |
 | 6 | `single_instance` | arquivo de trava com `fcntl.flock` | rascunho |
 | 7 | `system_language`, `open_path` | `defaults read -g AppleLanguages`, `open` | rascunho |
 | 8 | `autostart_*` | LaunchAgent em `~/Library/LaunchAgents` | rascunho |
 | 9 | `ui_scale`, `style_window`, `monitors` | Tk no macOS: conferir tela Retina, barra de título, várias telas | **verificar** |
 | 10 | `session_locked`, `lock_session` | Quartz (`CGSSessionScreenIsLocked`); bloquear a tela | **TODO** |
-| 11 | `set_lock_screen` | ver "O problema da tela de bloqueio" abaixo | **TODO** |
+| 11 | `set_lock_screen`, `restore_lock_screen`, `has_pending_restore` | troca o papel de parede (opt-in `lock_wallpaper`); o original fica em `original_wallpaper.txt` e volta ao desbloquear, ao pausar, ao sair, no menu da bandeja, na próxima inicialização (se o app caiu) ou com `python app.py --restore-wallpaper` | testado (osascript) |
 | 12 | Empacotamento | `.app` com PyInstaller ou py2app, assinatura e notarização | **TODO** |
 
 Ao terminar um item, atualize a coluna Status e abra um pull request pequeno. Um item por PR facilita

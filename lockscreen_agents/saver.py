@@ -181,9 +181,7 @@ def run_saver(seconds=None):
 
     root.report_callback_exception = on_error
     _log(f"iniciado /s seconds={seconds} frozen={getattr(sys, 'frozen', False)}")
-    root.overrideredirect(True)
-    root.geometry(f"{vw}x{vh}+{vx}+{vy}")
-    root.attributes("-topmost", True)
+    platforms.current().make_fullscreen(root, (vx, vy, vx + vw, vy + vh))
     root.configure(bg=hexcolor(BG), cursor="none")
     canvas = tk.Canvas(root, width=vw, height=vh, bg=hexcolor(BG), highlightthickness=0, cursor="none")
     canvas.pack(fill="both", expand=True)

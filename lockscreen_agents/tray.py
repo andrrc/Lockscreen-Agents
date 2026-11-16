@@ -71,6 +71,11 @@ class App:
         self.status = {}
         self.last_key = None
         self.n = 0
+        self.locked = False     # tela bloqueada na última leitura (só usado onde a imagem vale bloqueado)
+        # Já trocamos o papel de parede (precisa restaurar). Começa pelo disco: se o app anterior
+        # fechou ou caiu com a imagem nossa na tela, restaura assim que der.
+        self.wallpaper_set = platforms.current().has_pending_restore()
+        self.restore_lock = threading.Lock()  # menu e worker restauram de threads diferentes
         self.saver = None       # subprocess do protetor
         self.saver_auto = False  # aberto por ociosidade (True) ou teste manual (False)
         self.armed = True       # só reabre depois que o usuário voltar a usar o PC
@@ -93,6 +98,8 @@ class App:
             pystray.MenuItem(lambda _i: t("tray.settings"), self._open_settings, default=True),
             pystray.MenuItem(lambda _i: t("tray.pause"), self._toggle_pause, checked=lambda _i: self.paused),
             pystray.MenuItem(lambda _i: t("tray.refresh"), self._force),
+            pystray.MenuItem(lambda _i: t("tray.restore"), self._restore_now,
+                             visible=lambda _i: platforms.current().LOCK_SCREEN_OPT_IN),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(lambda _i: t("tray.test"), self._test_saver),
             pystray.MenuItem(lambda _i: t("tray.folder"), self._open_folder),
@@ -105,6 +112,8 @@ class App:
     def _toggle_pause(self, icon, _item):
         self.paused = not self.paused
         icon.icon = make_icon(self.paused)
+        if self.paused:
+            self.restore()  # pausado não mexe mais no papel de parede: devolve o original agora
         log("pausado" if self.paused else "retomado")
         self.wake.set()
 
@@ -116,6 +125,10 @@ class App:
         self.last_key = None
         self.wake.set()
 
+    def _restore_now(self, _icon, _item):
+        self.restore(force=True)
+        self.last_key = None  # se ainda estiver bloqueado, a próxima leitura desenha de novo
+
     def _open_folder(self, _icon, _item):
         platforms.current().open_path(OUT_DIR)
 
@@ -124,15 +137,36 @@ class App:
         self.wake.set()
         if self.saver and self.saver.poll() is None:
             self.saver.terminate()
+        self.restore()
         icon.stop()
 
     # ---- lock screen ----
     def apply(self, status):
+        plat = platforms.current()
+        if plat.LOCK_SCREEN_OPT_IN and not settings.get()["lock_wallpaper"]:
+            return  # a plataforma só troca a imagem se o usuário ligar a opção
+        if plat.LOCK_SCREEN_WHILE_LOCKED and not self.locked:
+            return  # só troca com a tela bloqueada (ao desbloquear, restore() devolve o original)
         self.n += 1
         path = OUT_DIR / f"lock_{self.n % 2}.png"  # nome alternado: o Windows cacheia pelo caminho
         render(status).save(path)
-        platforms.current().set_lock_screen(path)
+        plat.set_lock_screen(path)
+        self.wallpaper_set = True
         log(f"lock screen -> {status}")
+
+    def restore(self, force=False):
+        """Devolve o que a plataforma alterou (papel de parede no macOS). `force`: tenta mesmo
+        sem lembrar de ter trocado (pedido manual)."""
+        with self.restore_lock:
+            if not (self.wallpaper_set or force):
+                return
+            try:
+                done = platforms.current().restore_lock_screen()
+            except Exception:  # noqa: BLE001
+                log("erro ao restaurar: " + traceback.format_exc().replace("\n", " | "))
+                return  # continua marcado: o worker tenta de novo
+            self.wallpaper_set = False
+            log("papel de parede restaurado" if done else "papel de parede: nada a restaurar")
 
     # ---- protetor de tela ----
     def start_saver(self, auto):
@@ -164,7 +198,20 @@ class App:
         while not self.stop.is_set():
             try:
                 cfg = settings.get()
-                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], tuple(sorted(cfg["skins"].items())))
+                if platforms.current().LOCK_SCREEN_WHILE_LOCKED:
+                    locked = session_locked()
+                    if locked != self.locked:
+                        self.locked = locked
+                        self.last_key = None  # bloqueou: desenha agora
+                        if not locked:
+                            self.restore()  # desbloqueou: devolve o papel de parede
+                if self.wallpaper_set and (not cfg["lock_wallpaper"] or self.paused):
+                    self.restore()  # o usuário desligou a opção (ou pausou)
+                elif (self.wallpaper_set and platforms.current().LOCK_SCREEN_WHILE_LOCKED
+                      and not self.locked):
+                    self.restore()  # destrancado com a imagem nossa ainda na tela: tenta de novo
+                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], tuple(sorted(cfg["skins"].items())),
+                       cfg["lock_wallpaper"])
                 if key != self.cfg_key:  # mudou ferramentas, idioma ou visual: redesenha a lock screen
                     self.cfg_key = key
                     self.last_key = None

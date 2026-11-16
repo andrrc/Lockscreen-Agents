@@ -1,6 +1,8 @@
 """Gera a imagem da lock screen: ferramenta ativa em cor, as outras em preto e branco."""
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
+from . import platforms
+
 W, H = 1920, 1080
 BG = (14, 14, 16)
 CLAUDE_ORANGE = (204, 122, 94)  # laranja chapado, sem sombreado (igual à referência)
@@ -304,7 +306,7 @@ def state_of(status, key):
 
 
 def _font(size):
-    for name in ("segoeui.ttf", "arial.ttf"):
+    for name in platforms.current().FONTS:
         try:
             return ImageFont.truetype(name, size)
         except OSError:

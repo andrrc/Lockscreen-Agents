@@ -79,6 +79,7 @@ class App:
         self.saver = None       # subprocess do protetor
         self.saver_auto = False  # aberto por ociosidade (True) ou teste manual (False)
         self.armed = True       # só reabre depois que o usuário voltar a usar o PC
+        self.media_logged = False  # já avisamos no log que o protetor está adiado por causa de vídeo
         self.stop = threading.Event()
         self.wake = threading.Event()
         self.icon = pystray.Icon(APP_NAME, make_icon(), "Lockscreen Agents", menu=self._menu())
@@ -191,6 +192,12 @@ class App:
         cfg = settings.get()
         if (cfg["saver_on"] and self.armed and not self.paused
                 and idle >= cfg["idle_min"] * 60 and not session_locked()):
+            if cfg["saver_skip_media"] and platforms.current().display_sleep_blocked():
+                if not self.media_logged:
+                    log("protetor adiado: vídeo, chamada ou apresentação em andamento")
+                    self.media_logged = True
+                return
+            self.media_logged = False
             self.start_saver(auto=True)
 
     # ---- trabalho em segundo plano ----

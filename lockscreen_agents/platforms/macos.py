@@ -80,6 +80,19 @@ class MacPlatform(Platform):
             return True
         return any(u.get("CGSSessionScreenIsLocked") for u in users)
 
+    def display_sleep_blocked(self):
+        """Navegadores e players seguram a asserção PreventUserIdleDisplaySleep enquanto tocam
+        vídeo (chamadas e apresentações também); o próprio protetor do macOS a respeita."""
+        try:
+            out = _run("pmset", "-g", "assertions")
+        except Exception:  # noqa: BLE001
+            return False  # sem saber, o protetor abre normalmente
+        for line in out.splitlines():
+            name, _, count = line.strip().partition(" ")
+            if name in ("PreventUserIdleDisplaySleep", "NoDisplaySleepAssertion") and count.strip() == "1":
+                return True
+        return False
+
     # ---- ações
     def _current_wallpaper(self):
         script = 'tell application "Finder" to get POSIX path of (desktop picture as alias)'

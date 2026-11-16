@@ -67,6 +67,12 @@ class Platform:
         desfeito. Lê do disco, não da memória: o app pode ter fechado sem restaurar."""
         return False
 
+    def display_sleep_blocked(self) -> bool:
+        """True se algo (vídeo, chamada, apresentação) está pedindo para a tela ficar acesa. O
+        protetor não deve abrir nesse caso: ver o vídeo não conta como mexer no PC. Em caso de
+        dúvida, devolva False."""
+        return False
+
     def lock_session(self) -> None:
         """Bloqueia o computador agora."""
         raise NotImplementedError

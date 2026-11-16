@@ -114,6 +114,22 @@ class WindowsPlatform(Platform):
         u.CloseDesktop(h)
         return False
 
+    def display_sleep_blocked(self):
+        """Dois sinais, qualquer um basta: algum programa pediu a tela acesa (ES_DISPLAY_REQUIRED,
+        o que players e navegadores fazem ao tocar vídeo) ou há um app em tela cheia/apresentação."""
+        try:
+            state = ctypes.c_ulong(0)
+            # SystemExecutionState = 16: soma do que os programas pediram com SetThreadExecutionState
+            if (ctypes.windll.powrprof.CallNtPowerInformation(16, None, 0, ctypes.byref(state), 4) == 0
+                    and state.value & 0x00000002):  # ES_DISPLAY_REQUIRED
+                return True
+            shown = ctypes.c_int(0)
+            if ctypes.windll.shell32.SHQueryUserNotificationState(ctypes.byref(shown)) == 0:
+                return shown.value in (2, 3, 4)  # ocupado (tela cheia), Direct3D em tela cheia, apresentação
+        except Exception:  # noqa: BLE001
+            pass
+        return False
+
     # ---- ações
     def set_lock_screen(self, image_path):
         """API WinRT LockScreen. A tela de bloqueio precisa estar no modo "Imagem"."""

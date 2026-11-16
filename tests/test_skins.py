@@ -20,7 +20,8 @@ def test_settings_accept_available_skin():
 
 
 def test_settings_reject_unknown_skin():
-    cfg = settings.save({"skins": {"claude": "inexistente", "codex": "coffee"}})
+    # o Cursor ainda não tem visual de café
+    cfg = settings.save({"skins": {"claude": "inexistente", "cursor": "coffee"}})
     assert cfg["skins"] == skins.defaults()
 
 
@@ -35,6 +36,14 @@ def test_coffee_cup_changes_the_drawing():
     assert wrench.tobytes() != coffee.tobytes()
 
 
+def test_codex_coffee_cup_changes_the_drawing():
+    default = render.draw_codex(225, tool=True, skin="default")
+    coffee = render.draw_codex(225, tool=True, skin="coffee")
+    assert default.tobytes() != coffee.tobytes()
+    idle = render.draw_codex(225, tool=False, skin="coffee")
+    assert idle.tobytes() == default.tobytes()  # parado, sem xícara
+
+
 def test_skin_only_shows_while_working():
     idle = render.draw_claude(224, tool=False, skin="coffee")
     assert idle.tobytes() == render.draw_claude(224, tool=False, skin="wrench").tobytes()
@@ -45,3 +54,7 @@ def test_lock_screen_uses_the_chosen_skin():
     before = render.render(status)
     settings.update(skins={"claude": "coffee"})
     assert render.render(status).tobytes() != before.tobytes()
+    working = {"claude": "open", "codex": "working", "cursor": "closed"}
+    before = render.render(working)
+    settings.update(skins={"codex": "coffee"})
+    assert render.render(working).tobytes() != before.tobytes()

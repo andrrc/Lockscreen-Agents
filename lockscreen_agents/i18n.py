@@ -66,7 +66,7 @@ STRINGS = {
         "skins.title": "Personagens",
         "skins.sub": "Escolha o visual de cada mascote. Novos visuais estão a caminho.",
         "skin.claude.wrench": "Chave inglesa", "skin.claude.coffee": "Xícara de café",
-        "skin.codex.default": "Padrão", "skin.cursor.default": "Padrão",
+        "skin.codex.default": "Padrão", "skin.codex.coffee": "Xícara de café", "skin.cursor.default": "Padrão",
         # ferramentas
         "tools.title": "Ferramentas",
         "tools.sub": "Escolha quais assistentes aparecem nos mascotes.",
@@ -167,7 +167,7 @@ STRINGS = {
         "skins.title": "Characters",
         "skins.sub": "Pick each mascot's look. New looks are on the way.",
         "skin.claude.wrench": "Wrench", "skin.claude.coffee": "Coffee cup",
-        "skin.codex.default": "Default", "skin.cursor.default": "Default",
+        "skin.codex.default": "Default", "skin.codex.coffee": "Coffee cup", "skin.cursor.default": "Default",
         "tools.title": "Tools",
         "tools.sub": "Choose which assistants show up as mascots.",
         "tools.claude.desc": "Terminal and desktop app. Watches your user's .claude folder.",

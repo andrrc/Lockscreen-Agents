@@ -84,7 +84,7 @@ As regras (em uso, ocioso, fechado) e seus tempos ficam em `detector.get_states`
 **Um visual novo para um mascote** (como a xícara de café do Claude)
 
 1. Em `skins.py`, acrescente `{"id": "meu-visual", "available": True}` na lista da ferramenta.
-2. Desenhe-o em `render.py`: `draw_claude` tem o parâmetro `skin` (grade de células, em pixel-art); o visual só aparece enquanto a ferramenta está em uso.
+2. Desenhe-o em `render.py`: `draw_claude` e `draw_codex` têm o parâmetro `skin` (grade de células, em pixel-art); o visual só aparece enquanto a ferramenta está em uso.
 3. Crie o nome `skin.<ferramenta>.<id>` em português e inglês em `i18n.py`; um teste confere.
 4. Ele aparece sozinho na página **Personagens** e vale na lock screen e no protetor.
 

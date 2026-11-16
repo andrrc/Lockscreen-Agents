@@ -32,6 +32,23 @@ CODEX_ARM = (96, 134, 240)
 ACCENT = {"claude": CLAUDE_ORANGE, "codex": (122, 160, 255), "cursor": (230, 230, 235)}
 
 
+def _draw_cup(d, hand_x, hand_cy, sub, wiggle):
+    """Xícara de café em pixel-art. A alça fica na altura da mão (`hand_cy`) e encosta no braço
+    (`hand_x`, borda esquerda dele). `sub` é o tamanho de um "pixel" da xícara; `wiggle` (-1 ou 1)
+    é o lado para onde o vapor se inclina."""
+    x0 = hand_x + sub - len(CUP_ART[0]) * sub
+    y0 = int(hand_cy - 5.5 * sub)
+    for y, row in enumerate(CUP_ART):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                d.rectangle([x0 + x * sub, y0 + y * sub, x0 + (x + 1) * sub - 1, y0 + (y + 1) * sub - 1],
+                            fill=CUP_COLORS[ch])
+    cx = x0 + 5 * sub
+    for dx, dyy in ((0, -2), (wiggle, -4), (0, -6)):  # vapor
+        d.rectangle([cx + dx * sub, y0 + dyy * sub, cx + (dx + 1) * sub - 1, y0 + (dyy + 1) * sub - 1],
+                    fill=STEAM)
+
+
 def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
     """Clawd, o mascote do Claude Code, em pixel art chapada.
 
@@ -67,19 +84,7 @@ def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
         box(1, 8 + dy, 1, 8 + dy, STEEL_DARK, 0, 0)  # furinho na ponta
 
     if coffee:  # xícara na mão esquerda: o bracinho (desenhado depois) segura a alça
-        sub = max(1, px // 2)  # "pixel" da xícara: meia célula do mascote
-        x0 = ox * px + sub - len(CUP_ART[0]) * sub  # a alça encosta no bracinho
-        y0 = int((ay_l + oy + 1) * px - 5.5 * sub)  # alça na altura do bracinho
-        for y, row in enumerate(CUP_ART):
-            for x, ch in enumerate(row):
-                if ch != ".":
-                    d.rectangle([x0 + x * sub, y0 + y * sub, x0 + (x + 1) * sub - 1, y0 + (y + 1) * sub - 1],
-                                fill=CUP_COLORS[ch])
-        wiggle = 1 if (walking and step % 2) else -1  # vapor que muda de lado a cada passo
-        cx = x0 + 5 * sub
-        for k, (dx, dyy) in enumerate(((0, -2), (wiggle, -4), (0, -6))):
-            d.rectangle([cx + dx * sub, y0 + dyy * sub, cx + (dx + 1) * sub - 1, y0 + (dyy + 1) * sub - 1],
-                        fill=STEAM)
+        _draw_cup(d, ox * px, (ay_l + oy + 1) * px, max(1, px // 2), 1 if (walking and step % 2) else -1)
 
     # corpo
     box(2, 0, 9, 5, CLAUDE_ORANGE)
@@ -100,20 +105,24 @@ def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
     return img
 
 
-def draw_codex(size=300, step=None, blink=False):
+def draw_codex(size=300, step=None, blink=False, tool=True, skin="default"):
     """Mascote do Codex em pixel art: cabeça de nuvem com tela de terminal (>_),
     corpinho com um >_ no peito, bracinhos e pezinhos.
 
     Grade de 14x15 células. `step` alterna braços e pés (caminhada);
     `blink` apaga o cursor `_` da tela (cursor piscando = trabalhando).
+    `skin` "coffee" põe uma xícara de café na mão esquerda (só com `tool`, ou seja, trabalhando).
     """
-    cols, rows = 14, 15
+    rows = 15
+    coffee = tool and skin == "coffee"
+    ox = 4 if coffee else 0  # a xícara ocupa quatro colunas a mais à esquerda
+    cols = 14 + ox
     px = max(1, size // rows)
     img = Image.new("RGBA", (cols * px, rows * px), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
     def box(x0, y0, x1, y1, color):  # coordenadas inclusivas, em células
-        d.rectangle([x0 * px, y0 * px, (x1 + 1) * px - 1, (y1 + 1) * px - 1], fill=color)
+        d.rectangle([(x0 + ox) * px, y0 * px, (x1 + 1 + ox) * px - 1, (y1 + 1) * px - 1], fill=color)
 
     walking = step is not None
 
@@ -148,6 +157,8 @@ def draw_codex(size=300, step=None, blink=False):
 
     # bracinhos
     ay_l, ay_r = ((10, 11) if step % 2 else (11, 10)) if walking else (10, 10)
+    if coffee:  # xícara na mão esquerda, na frente da nuvem; o bracinho (depois) segura a alça
+        _draw_cup(d, (3 + ox) * px, (ay_l + 1) * px, max(1, px // 2), 1 if (walking and step % 2) else -1)
     box(3, ay_l, 3, ay_l + 1, CODEX_ARM)
     box(10, ay_r, 10, ay_r + 1, CODEX_ARM)
 
@@ -272,7 +283,8 @@ def render(status, step=None, size=(W, H)):
     makers = {
         "claude": lambda: draw_claude(logo, step, tool=state_of(status, "claude") == "working",
                                       skin=settings.get()["skins"]["claude"]),
-        "codex": lambda: draw_codex(logo, step),
+        "codex": lambda: draw_codex(logo, step, tool=state_of(status, "codex") == "working",
+                                    skin=settings.get()["skins"]["codex"]),
         "cursor": lambda: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6),
     }
     for i, key in enumerate(keys):

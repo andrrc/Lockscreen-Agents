@@ -1014,6 +1014,11 @@ class SettingsApp:
         g = self.row(y, t("gen.start.t"), t("gen.start.d"))
         Switch(self, g, CX + CW - 22 - 46, y + (CARD_H - 26) / 2, autostart.is_enabled(), self.set_autostart)
         y += CARD_H + 12
+        if platforms.current().LOCK_SCREEN_OPT_IN:  # macOS: a lock screen mostra o papel de parede
+            g = self.row(y, t("gen.wall.t"), t("gen.wall.d"))
+            Switch(self, g, CX + CW - 22 - 46, y + (CARD_H - 26) / 2, self.cfg["lock_wallpaper"],
+                   lambda v: self.set_value("lock_wallpaper", v))
+            y += CARD_H + 12
         g = self.row(y, t("gen.folder.t"), t("gen.folder.d"))
         Button(self, g, CX + CW - 22 - 110, y + (CARD_H - 38) / 2, 110, 38, t("gen.folder.b"),
                lambda: platforms.current().open_path(settings.OUT_DIR))

@@ -8,6 +8,7 @@ Dependências extras (só macOS): nenhuma obrigatória. Se precisar de PyObjC, a
 requirements-macos.txt.
 """
 import os
+import plistlib
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ from pathlib import Path
 from .base import Platform
 
 APP_NAME = "LockscreenAgents"
+ORIGINAL_WALLPAPER = "original_wallpaper.txt"
 LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.lockscreen-agents.app.plist"
 
 
@@ -33,6 +35,13 @@ class MacPlatform(Platform):
         "codex": ({"codex"}, ("codex.app", "openai.codex")),
         "cursor": ({"cursor"}, ("cursor.app",)),
     }
+
+    FONTS = ("/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc")
+
+    # Sem API pública para trocar só a imagem da tela de bloqueio: ela mostra o papel de parede.
+    # Por isso só mexemos nele se o usuário ligar "lock_wallpaper" (e guardamos o original).
+    LOCK_SCREEN_OPT_IN = True
+    LOCK_SCREEN_WHILE_LOCKED = True
 
     def data_dir(self):
         return Path.home() / "Library" / "Application Support" / APP_NAME
@@ -58,15 +67,47 @@ class MacPlatform(Platform):
         return 0.0
 
     def session_locked(self):
-        # TODO(macos): detectar tela bloqueada (ex.: CGSessionCopyCurrentDictionary, chave
-        # "CGSSessionScreenIsLocked", via PyObjC/Quartz).
-        return False
+        """O ioreg lista as sessões em IOConsoleUsers; a chave CGSSessionScreenIsLocked só existe
+        enquanto a tela está bloqueada. Sem nenhuma sessão no console (troca de usuário), vale
+        como bloqueado."""
+        try:
+            root = plistlib.loads(subprocess.run(["ioreg", "-n", "Root", "-d1", "-a"], capture_output=True,
+                                                 timeout=10).stdout)
+        except Exception:  # noqa: BLE001
+            return False  # sem saber, não troca o papel de parede
+        users = root.get("IOConsoleUsers") or []
+        if not any(u.get("kCGSSessionOnConsoleKey") for u in users):
+            return True
+        return any(u.get("CGSSessionScreenIsLocked") for u in users)
 
     # ---- ações
+    def _current_wallpaper(self):
+        script = 'tell application "Finder" to get POSIX path of (desktop picture as alias)'
+        return _run("osascript", "-e", script).strip()
+
+    def _set_wallpaper(self, path):
+        script = ('tell application "System Events" to tell every desktop to set picture to '
+                  f'POSIX file "{path}"')
+        done = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=15)
+        if done.returncode != 0:
+            raise RuntimeError("osascript: " + done.stderr.strip())
+
     def set_lock_screen(self, image_path):
-        # TODO(macos): o macOS não tem API pública para trocar só a imagem da tela de bloqueio;
-        # ela costuma mostrar o papel de parede. Opções em docs/MACOS.md.
-        raise NotImplementedError("set_lock_screen ainda não foi portado para o macOS (veja docs/MACOS.md)")
+        """Troca o papel de parede (a tela de bloqueio do macOS mostra ele). Guarda o original
+        uma vez só, para restore_lock_screen devolver; nunca guarda uma imagem nossa."""
+        saved = self.data_dir() / ORIGINAL_WALLPAPER
+        if not saved.exists():
+            current = self._current_wallpaper()
+            if current and Path(current).parent != self.data_dir():
+                saved.write_text(current, encoding="utf-8")
+        self._set_wallpaper(os.path.abspath(image_path))
+
+    def restore_lock_screen(self):
+        saved = self.data_dir() / ORIGINAL_WALLPAPER
+        if not saved.exists():
+            return
+        self._set_wallpaper(saved.read_text(encoding="utf-8").strip())
+        saved.unlink()
 
     def lock_session(self):
         # TODO(macos): `pmset displaysleepnow` apaga a tela; para bloquear de fato, verificar a
@@ -117,6 +158,12 @@ class MacPlatform(Platform):
         # O Tk do macOS já trabalha em pontos; 1.0 evita janelas minúsculas. TODO(macos): conferir
         # em tela Retina e ajustar fontes.
         return 1.0
+
+    def make_fullscreen(self, root, rect):
+        # Com o Tk do macOS, overrideredirect + geometry vira uma janela comum; -fullscreen cobre
+        # a tela inteira (menu e Dock incluídos). Cobre só a tela principal.
+        root.attributes("-fullscreen", True)
+        root.attributes("-topmost", True)
 
     def show_message(self, title, text):
         script = f'display dialog "{text}" with title "{title}" buttons {{"OK"}}'

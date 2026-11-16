@@ -35,3 +35,9 @@ def test_every_tool_has_process_names():
     for cls in (MacPlatform,):
         assert set(cls.PROCESS_NAMES) == {"claude", "codex", "cursor"}
         assert set(cls.FOCUS_MATCH) == {"claude", "codex", "cursor"}
+
+
+def test_lock_screen_is_opt_in_only_where_it_touches_the_user_wallpaper():
+    assert MacPlatform.LOCK_SCREEN_OPT_IN is True
+    assert base.Platform.LOCK_SCREEN_OPT_IN is False
+    assert base.Platform().restore_lock_screen() is None  # padrão: nada a desfazer

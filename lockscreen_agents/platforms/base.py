@@ -19,6 +19,17 @@ class Platform:
     # Como reconhecer a janela em foco de cada ferramenta: (nomes de executável, trechos do caminho).
     FOCUS_MATCH = {"claude": (set(), ()), "codex": (set(), ()), "cursor": (set(), ())}
 
+    # Fontes (caminho ou nome de arquivo) tentadas em ordem pelo render; cai na padrão do Pillow.
+    FONTS = ("segoeui.ttf", "arial.ttf")
+
+    # True se trocar a imagem da tela de bloqueio mexe em algo do usuário (ex.: o papel de parede
+    # no macOS). Então o app só chama set_lock_screen com a opção "lock_wallpaper" ligada.
+    LOCK_SCREEN_OPT_IN = False
+
+    # True se a imagem só deve ser aplicada enquanto a tela está bloqueada (e desfeita ao
+    # desbloquear), para não deixar o papel de parede do usuário trocado o dia todo.
+    LOCK_SCREEN_WHILE_LOCKED = False
+
     # ---- dados do app
     def data_dir(self) -> Path:
         """Pasta onde o app guarda configurações, logs e imagens (criada pelo chamador)."""
@@ -45,6 +56,9 @@ class Platform:
     def set_lock_screen(self, image_path) -> None:
         """Define a imagem como tela de bloqueio."""
         raise NotImplementedError
+
+    def restore_lock_screen(self) -> None:
+        """Desfaz set_lock_screen quando a plataforma alterou algo do usuário (padrão: nada)."""
 
     def lock_session(self) -> None:
         """Bloqueia o computador agora."""
@@ -95,6 +109,13 @@ class Platform:
     def monitors(self, root) -> list:
         """Lista de telas como (esquerda, topo, direita, base) em pixels."""
         return [(0, 0, root.winfo_screenwidth(), root.winfo_screenheight())]
+
+    def make_fullscreen(self, root, rect) -> None:
+        """Cobre `rect` (esquerda, topo, direita, base) com a janela, sem borda e por cima de tudo."""
+        left, top, right, bottom = rect
+        root.overrideredirect(True)
+        root.geometry(f"{right - left}x{bottom - top}+{left}+{top}")
+        root.attributes("-topmost", True)
 
     def show_message(self, title: str, text: str) -> None:
         """Mostra uma caixa de mensagem simples."""

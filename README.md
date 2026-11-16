@@ -32,7 +32,7 @@ Mascotes na tela de bloqueio e no protetor de tela do Windows que mostram, num r
 ## Instalação
 
 ```bash
-git clone https://github.com/SEU-USUARIO/lockscreen-agents.git
+git clone https://github.com/andrrc/lockscreen-agents.git
 cd lockscreen-agents
 pip install -r requirements.txt
 python install.py
@@ -117,7 +117,7 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 ### Install
 
 ```bash
-git clone https://github.com/YOUR-USER/lockscreen-agents.git
+git clone https://github.com/andrrc/lockscreen-agents.git
 cd lockscreen-agents
 pip install -r requirements.txt
 python install.py

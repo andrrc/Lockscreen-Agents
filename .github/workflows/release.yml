@@ -1,0 +1,68 @@
+name: Release
+
+# Ao enviar uma tag como v0.1.0, gera o executável e o instalador e publica na página de Releases.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:   # também dá para rodar à mão (gera os arquivos sem publicar)
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Ler a versão
+        id: ver
+        shell: bash
+        run: echo "version=$(python -c 'from version import __version__; print(__version__)')" >> "$GITHUB_OUTPUT"
+
+      - name: Conferir se a tag bate com a versão
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "v${{ steps.ver.outputs.version }}" ]; then
+            echo "A tag ${GITHUB_REF_NAME} não bate com version.py (${{ steps.ver.outputs.version }})"; exit 1
+          fi
+
+      - name: Gerar o executável
+        run: python build_exe.py
+
+      - name: Gerar o instalador
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.ver.outputs.version }}" installer.iss
+
+      - name: Gerar a versão portátil (.zip) e os checksums
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          Compress-Archive -Path build\dist\LockscreenAgents -DestinationPath "build\installer\LockscreenAgents-Portable-$v.zip"
+          Get-ChildItem build\installer\LockscreenAgents-* | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content build\installer\SHA256SUMS.txt
+          Get-Content build\installer\SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LockscreenAgents-${{ steps.ver.outputs.version }}
+          path: build/installer/*
+
+      - name: Publicar a Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/installer/*
+          generate_release_notes: true

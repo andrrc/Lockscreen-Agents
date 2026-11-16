@@ -5,24 +5,20 @@ o que funcionar sobe o app (o mutex do tray.py evita cópia dupla).
 """
 import os
 import subprocess
-import sys
 import winreg
 from pathlib import Path
+
+import launcher
+import settings
 
 APP_NAME = "LockscreenAgents"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 INSTALLED_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME / "app"
 
 
-def pythonw():
-    exe = Path(sys.executable)
-    w = exe.with_name("pythonw.exe")
-    return w if w.exists() else exe
-
-
 def app_dir():
     """Pasta do app instalado (ou a pasta atual, se estiver rodando direto do código-fonte)."""
-    return INSTALLED_DIR if (INSTALLED_DIR / "tray.py").exists() else Path(__file__).resolve().parent
+    return INSTALLED_DIR if (INSTALLED_DIR / "app.py").exists() else Path(__file__).resolve().parent
 
 
 def startup_lnk():
@@ -39,23 +35,31 @@ def is_enabled():
         return startup_lnk().exists()
 
 
-def enable(directory=None, python=None):
-    directory = Path(directory or app_dir())
-    python = Path(python or pythonw())
-    tray = directory / "tray.py"
+def _quote(arg):
+    return f'"{arg}"'
+
+
+def enable(directory=None):
+    """Liga o início automático. Empacotado em .exe, aponta para o próprio executável; do
+    código-fonte, para o app.py instalado em `directory` (padrão: pasta do app instalado)."""
+    cmd = launcher.command(directory=directory or app_dir())
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
-        winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, f'"{python}" "{tray}"')
+        winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, " ".join(_quote(a) for a in cmd))
+    icon = f"$s.IconLocation='{cmd[0]},0';" if launcher.FROZEN else ""
+    if not launcher.FROZEN:
+        try:  # ícone da logo no atalho
+            import logo
+            ico = settings.OUT_DIR / "logo.ico"
+            settings.OUT_DIR.mkdir(parents=True, exist_ok=True)
+            logo.save_ico(ico)
+            icon = f"$s.IconLocation='{ico}';"
+        except Exception:  # noqa: BLE001
+            pass
     lnk = startup_lnk()
-    icon = ""
-    try:  # ícone da logo no atalho
-        import logo
-        logo.save_ico(directory / "logo.ico")
-        icon = f"$s.IconLocation='{directory / 'logo.ico'}';"
-    except Exception:  # noqa: BLE001
-        pass
+    args = " ".join(_quote(a) for a in cmd[1:])
     ps = (f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
-          f"$s.TargetPath='{python}';$s.Arguments='\"{tray}\"';{icon}"
-          f"$s.WorkingDirectory='{directory}';$s.WindowStyle=7;$s.Save()")
+          f"$s.TargetPath='{cmd[0]}';$s.Arguments='{args}';{icon}"
+          f"$s.WorkingDirectory='{Path(cmd[0]).parent}';$s.WindowStyle=7;$s.Save()")
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True,
                    creationflags=0x08000000)  # CREATE_NO_WINDOW
     return lnk.exists()

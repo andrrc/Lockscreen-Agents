@@ -50,6 +50,14 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 
 ## Instalação
 
+### Instalador (Windows 10/11)
+
+Baixe o `LockscreenAgents-Setup-<versão>.exe` na página de **Releases** e execute. Não precisa de Python nem de administrador. Também há uma versão portátil em `.zip` (extraia e abra `LockscreenAgents.exe`).
+
+> O instalador ainda **não é assinado digitalmente**, então o Windows pode mostrar o aviso do SmartScreen ("Windows protegeu seu PC"). Clique em **Mais informações → Executar assim mesmo**. Os arquivos da Release são gerados automaticamente a partir deste código pelo GitHub Actions, e o `SHA256SUMS.txt` permite conferir a integridade.
+
+### A partir do código-fonte
+
 ```bash
 git clone https://github.com/andrrc/lockscreen-agents.git
 cd lockscreen-agents
@@ -101,8 +109,22 @@ Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (co
 | `templates.py` | lista dos modelos (visuais), incluindo os “em breve” |
 | `i18n.py` | textos em português e inglês |
 | `autostart.py` | início automático com o Windows |
-| `install.py` | instala, liga o autostart e remove |
+| `app.py` | ponto de entrada único (`--settings`, `--saver`); é o que vira o `.exe` |
+| `launcher.py` | como o app chama a si mesmo (código-fonte ou `.exe`) |
+| `install.py` | instala a partir do código-fonte, liga o autostart e remove |
+| `build_exe.py` | gera o executável com o PyInstaller |
+| `installer.iss` | script do instalador (Inno Setup) |
+| `version.py` | número da versão |
 | `make_demo.py` | regenera as imagens da pasta `docs/` |
+
+## Gerando o executável
+
+```bash
+pip install -r requirements.txt pyinstaller
+python build_exe.py
+```
+
+Gera `build/dist/LockscreenAgents/LockscreenAgents.exe`. Para o instalador, instale o [Inno Setup 6](https://jrsoftware.org/isinfo.php) e rode `ISCC.exe /DMyAppVersion=0.1.0 installer.iss`. Ao enviar uma tag `vX.Y.Z` (igual ao `version.py`), o workflow `.github/workflows/release.yml` faz tudo isso e publica a Release.
 
 ## Contribuindo
 
@@ -141,6 +163,10 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 - Lock screen set to **Picture** (Settings → Personalization → Lock screen). Windows ignores the image in “Windows Spotlight” mode.
 
 ### Install
+
+**Installer (Windows 10/11):** download `LockscreenAgents-Setup-<version>.exe` from **Releases** and run it. No Python or admin rights needed. A portable `.zip` is also available. The installer is not code-signed yet, so Windows SmartScreen may warn you: click **More info → Run anyway**. Release files are built automatically from this repository by GitHub Actions; `SHA256SUMS.txt` lets you verify them.
+
+**From source:**
 
 ```bash
 git clone https://github.com/andrrc/lockscreen-agents.git

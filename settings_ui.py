@@ -26,6 +26,7 @@ from tkinter import font as tkfont
 from PIL import Image, ImageDraw, ImageTk
 
 import autostart
+import launcher
 import settings
 import templates
 from i18n import duration, t
@@ -987,9 +988,7 @@ class SettingsApp:
             pass
 
     def test_saver(self):
-        script = Path(__file__).with_name("saver.py")
-        if script.exists():
-            subprocess.Popen([sys.executable, str(script), "/s"], cwd=str(script.parent))
+        subprocess.Popen(launcher.command("saver", "/s"))
 
     # ---- aviso (toast)
     def toast(self, text, warn=False, info=False):

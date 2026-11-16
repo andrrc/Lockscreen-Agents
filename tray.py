@@ -12,6 +12,7 @@ from pathlib import Path
 import pystray
 from PIL import Image
 
+import launcher
 import settings
 from detector import get_states
 from i18n import t
@@ -114,11 +115,7 @@ class App:
         )
 
     def _open_settings(self, _icon=None, _item=None):
-        script = Path(__file__).with_name("settings_ui.py")
-        if not script.exists():
-            log("settings_ui.py não encontrado")
-            return
-        subprocess.Popen([sys.executable, str(script)], cwd=str(script.parent))  # ele mesmo evita duplicar
+        subprocess.Popen(launcher.command("settings"))  # a janela evita abrir duas vezes
 
     def _toggle_pause(self, icon, _item):
         self.paused = not self.paused
@@ -154,11 +151,7 @@ class App:
 
     # ---- protetor de tela ----
     def start_saver(self, auto):
-        script = Path(__file__).with_name("saver.py")
-        if not script.exists():
-            log("saver.py não encontrado")
-            return
-        self.saver = subprocess.Popen([sys.executable, str(script), "/s"], cwd=str(script.parent))
+        self.saver = subprocess.Popen(launcher.command("saver", "/s"))
         self.saver_auto = auto
         log("protetor aberto (" + ("ociosidade" if auto else "teste") + ")")
 
@@ -212,10 +205,14 @@ class App:
         self.icon.run()
 
 
-if __name__ == "__main__":
+def main():
     if not single_instance():
         sys.exit(0)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     log("iniciado")
     App().run()
     log("encerrado")
+
+
+if __name__ == "__main__":
+    main()

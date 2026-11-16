@@ -1,4 +1,5 @@
-"""Instala o Lockscreen Agents numa pasta estável e liga o início automático com o Windows.
+"""Instala o Lockscreen Agents (a partir do código-fonte) numa pasta estável e liga o início
+automático com o Windows. Quem usa o instalador .exe não precisa disto.
 
 Uso:
     python install.py              instala, liga o autostart e inicia o app
@@ -12,27 +13,20 @@ import time
 from pathlib import Path
 
 import autostart
+import launcher
 
 APP_NAME = "LockscreenAgents"
 BASE = Path(os.environ["LOCALAPPDATA"]) / APP_NAME
 APP_DIR = BASE / "app"
-FILES = ["autostart.py", "detector.py", "i18n.py", "lockscreen.py", "logo.py", "render.py", "saver.py",
-         "settings.py", "settings_ui.py", "templates.py", "tray.py"]
-
-
-def pythonw():
-    exe = Path(sys.executable)
-    w = exe.with_name("pythonw.exe")
-    if not w.exists():
-        raise SystemExit(f"pythonw.exe não encontrado ao lado de {exe}")
-    return w
+FILES = ["app.py", "autostart.py", "detector.py", "i18n.py", "launcher.py", "lockscreen.py", "logo.py",
+         "render.py", "saver.py", "settings.py", "settings_ui.py", "templates.py", "tray.py", "version.py"]
 
 
 def stop_running():
-    """Encerra instâncias anteriores (bandeja e janela de configurações)."""
+    """Encerra instâncias anteriores (bandeja, janela de configurações e protetor)."""
     ps = (
         "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^pythonw?\\.exe$' -and "
-        "$_.CommandLine -match '(tray|settings_ui)\\.py' } | ForEach-Object "
+        "$_.CommandLine -match '(app|tray|settings_ui|saver)\\.py' } | ForEach-Object "
         "{ Stop-Process -Id $_.ProcessId -Force; 'encerrado PID ' + $_.ProcessId }"
     )
     out = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
@@ -51,10 +45,10 @@ def install():
 
     # Dois caminhos (Run do registro + atalho em Inicializar): no logon de 16/11 o Windows ignorou
     # a entrada do Run; com os dois, o que funcionar sobe o app (o mutex evita cópia dupla).
-    ok = autostart.enable(APP_DIR, pythonw())
+    ok = autostart.enable(APP_DIR)
     print("Início automático ligado (registro" + (" + pasta Inicializar)." if ok else ")."))
 
-    subprocess.Popen([str(pythonw()), str(APP_DIR / "tray.py")], cwd=APP_DIR,
+    subprocess.Popen(launcher.command(directory=APP_DIR), cwd=APP_DIR,
                      creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | NEW_PROCESS_GROUP
     time.sleep(1)
     print("App iniciado. Procure o ícone do cadeado perto do relógio; clique duas vezes para as configurações.")

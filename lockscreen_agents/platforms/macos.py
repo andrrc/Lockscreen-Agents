@@ -92,22 +92,42 @@ class MacPlatform(Platform):
         if done.returncode != 0:
             raise RuntimeError("osascript: " + done.stderr.strip())
 
+    def _is_ours(self, path):
+        """True se `path` é uma das imagens que o app gerou (ficam na pasta de dados)."""
+        return bool(path) and Path(path).parent == self.data_dir()
+
+    def has_pending_restore(self):
+        return (self.data_dir() / ORIGINAL_WALLPAPER).exists()
+
     def set_lock_screen(self, image_path):
         """Troca o papel de parede (a tela de bloqueio do macOS mostra ele). Guarda o original
         uma vez só, para restore_lock_screen devolver; nunca guarda uma imagem nossa."""
         saved = self.data_dir() / ORIGINAL_WALLPAPER
         if not saved.exists():
             current = self._current_wallpaper()
-            if current and Path(current).parent != self.data_dir():
+            if current and not self._is_ours(current):
                 saved.write_text(current, encoding="utf-8")
         self._set_wallpaper(os.path.abspath(image_path))
 
     def restore_lock_screen(self):
+        """Devolve o papel de parede original. True se devolveu; False se não havia o que fazer
+        (nada guardado, o usuário já trocou por outro, ou o arquivo original sumiu). Só levanta
+        erro quando o osascript falha, para o chamador tentar de novo."""
         saved = self.data_dir() / ORIGINAL_WALLPAPER
         if not saved.exists():
-            return
-        self._set_wallpaper(saved.read_text(encoding="utf-8").strip())
+            return False
+        original = saved.read_text(encoding="utf-8").strip()
+        if not original or self._is_ours(original) or not Path(original).exists():
+            saved.unlink()  # registro inútil: tentar de novo nunca vai funcionar
+            return False
+        if not self._is_ours(self._current_wallpaper()):
+            saved.unlink()  # o usuário escolheu outro papel de parede enquanto isso: respeita
+            return False
+        self._set_wallpaper(original)
+        if self._is_ours(self._current_wallpaper()):
+            raise RuntimeError("o papel de parede continua o do app depois de restaurar")
         saved.unlink()
+        return True
 
     def lock_session(self):
         # TODO(macos): `pmset displaysleepnow` apaga a tela; para bloquear de fato, verificar a

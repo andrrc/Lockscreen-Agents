@@ -57,8 +57,15 @@ class Platform:
         """Define a imagem como tela de bloqueio."""
         raise NotImplementedError
 
-    def restore_lock_screen(self) -> None:
-        """Desfaz set_lock_screen quando a plataforma alterou algo do usuário (padrão: nada)."""
+    def restore_lock_screen(self) -> bool:
+        """Desfaz set_lock_screen quando a plataforma alterou algo do usuário (padrão: nada).
+        True se devolveu algo; False se não havia o que desfazer. Levanta erro se falhar."""
+        return False
+
+    def has_pending_restore(self) -> bool:
+        """True se um set_lock_screen anterior (talvez de outra execução do app) ainda não foi
+        desfeito. Lê do disco, não da memória: o app pode ter fechado sem restaurar."""
+        return False
 
     def lock_session(self) -> None:
         """Bloqueia o computador agora."""

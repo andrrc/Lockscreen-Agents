@@ -1,7 +1,10 @@
 """Regras de detecção: em uso / ocioso / fechado / desligado."""
+import os
 import time
 
 from lockscreen_agents import detector, settings
+
+CURSOR_PATH = os.path.join("apps", "cursor.exe")  # separador do sistema em que o teste roda
 
 
 def test_open_when_process_runs_without_activity(fake_platform, clean_detector):
@@ -36,14 +39,14 @@ def test_close_grace_keeps_open_for_a_while(fake_platform, clean_detector):
 
 def test_focused_window_counts_as_working(fake_platform, clean_detector):
     fake_platform.processes = {"cursor.exe"}
-    fake_platform.foreground = "c:\\apps\\cursor.exe"
+    fake_platform.foreground = CURSOR_PATH
     fake_platform.idle = 5
     assert detector.get_states()["cursor"] == "working"
 
 
 def test_focus_ignored_when_user_is_away(fake_platform, clean_detector):
     fake_platform.processes = {"cursor.exe"}
-    fake_platform.foreground = "c:\\apps\\cursor.exe"
+    fake_platform.foreground = CURSOR_PATH
     fake_platform.idle = 10_000
     assert detector.get_states()["cursor"] == "open"
 
@@ -51,7 +54,7 @@ def test_focus_ignored_when_user_is_away(fake_platform, clean_detector):
 def test_focus_can_be_turned_off(fake_platform, clean_detector):
     settings.update(follow_focus=False)
     fake_platform.processes = {"cursor.exe"}
-    fake_platform.foreground = "c:\\apps\\cursor.exe"
+    fake_platform.foreground = CURSOR_PATH
     fake_platform.idle = 5
     assert detector.get_states()["cursor"] == "open"
 

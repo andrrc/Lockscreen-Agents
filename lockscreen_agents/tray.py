@@ -210,8 +210,9 @@ class App:
                 elif (self.wallpaper_set and platforms.current().LOCK_SCREEN_WHILE_LOCKED
                       and not self.locked):
                     self.restore()  # destrancado com a imagem nossa ainda na tela: tenta de novo
-                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], cfg["lock_wallpaper"])
-                if key != self.cfg_key:  # mudou ferramentas ou idioma: redesenha a lock screen
+                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], tuple(sorted(cfg["skins"].items())),
+                       cfg["lock_wallpaper"])
+                if key != self.cfg_key:  # mudou ferramentas, idioma ou visual: redesenha a lock screen
                     self.cfg_key = key
                     self.last_key = None
                     self.icon.update_menu()

@@ -9,6 +9,23 @@ CLAUDE_ORANGE = (204, 122, 94)  # laranja chapado, sem sombreado (igual à refer
 EYE = (0, 0, 0)
 STEEL = (186, 194, 206)  # chave inglesa
 STEEL_DARK = (70, 74, 84)
+# Xícara de café em pixel-art (estilo contorno escuro + sombra azulada). K contorno, W louça,
+# S sombra, B café, L brilho do café, "." vazio. Cada letra é um "pixel" bem menor que a célula do mascote.
+CUP_ART = [
+    "...KKKKKK.....",
+    "..KWWWWWWK....",
+    ".KWWBBBBWWK...",
+    ".KWBLBBBBWKKK.",
+    ".KWWBBBBWWKWWK",
+    ".KWWWWWWWSKW.K",
+    ".KWWWWWWWSKW.K",
+    ".KWWWWWWSSKKK.",
+    "..KWWWWSSK....",
+    "...KKKKKK.....",
+]
+CUP_COLORS = {"K": (54, 46, 56), "W": (250, 250, 252), "S": (200, 210, 230), "B": (92, 54, 34),
+              "L": (146, 100, 68)}
+STEAM = (214, 222, 234)
 CODEX_BLUE = (66, 103, 214)
 CODEX_SCREEN = (24, 28, 56)
 CODEX_GLYPH = (160, 228, 244)
@@ -17,17 +34,37 @@ CODEX_ARM = (96, 134, 240)
 ACCENT = {"claude": CLAUDE_ORANGE, "codex": (122, 160, 255), "cursor": (230, 230, 235)}
 
 
-def draw_claude(size=300, step=None, blink=False, tool=True):
+def _draw_cup(d, hand_x, hand_cy, sub, wiggle):
+    """Xícara de café em pixel-art. A alça fica na altura da mão (`hand_cy`) e encosta no braço
+    (`hand_x`, borda esquerda dele). `sub` é o tamanho de um "pixel" da xícara; `wiggle` (-1 ou 1)
+    é o lado para onde o vapor se inclina."""
+    x0 = hand_x + sub - len(CUP_ART[0]) * sub
+    y0 = int(hand_cy - 5.5 * sub)
+    for y, row in enumerate(CUP_ART):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                d.rectangle([x0 + x * sub, y0 + y * sub, x0 + (x + 1) * sub - 1, y0 + (y + 1) * sub - 1],
+                            fill=CUP_COLORS[ch])
+    cx = x0 + 5 * sub
+    for dx, dyy in ((0, -2), (wiggle, -4), (0, -6)):  # vapor
+        d.rectangle([cx + dx * sub, y0 + dyy * sub, cx + (dx + 1) * sub - 1, y0 + (dyy + 1) * sub - 1],
+                    fill=STEAM)
+
+
+def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
     """Clawd, o mascote do Claude Code, em pixel art chapada.
 
     Grade de 14x10 células. O mascote (medido na imagem de referência):
       corpo 8x6, bracinhos 2x2 nas laterais, olhos 1x1 e quatro pernas 1x2.
     `step` alterna braços e pernas (caminhada); `blink` achata os olhos;
-    `tool` põe uma chave inglesa na mão esquerda (lado esquerdo da imagem) = trabalhando.
+    `tool` põe um acessório na mão esquerda (lado esquerdo da imagem) = trabalhando.
+    `skin` escolhe o acessório: "wrench" (chave inglesa) ou "coffee" (xícara de café, com vapor).
     """
-    cols, rows = 14, 10
-    ox, oy = 1, 2  # margem à esquerda (chave inglesa) e em cima
-    px = max(1, size // cols)
+    coffee = tool and skin == "coffee"
+    rows = 11 if coffee else 10  # a xícara com vapor pede uma linha a mais em cima
+    cols = 20 if coffee else 14  # a xícara ocupa seis colunas a mais à esquerda
+    ox, oy = (7 if coffee else 1), (3 if coffee else 2)  # margem à esquerda (chave inglesa / xícara) e em cima
+    px = max(1, size // 14)  # o tamanho da célula não muda com o visual
     img = Image.new("RGBA", (cols * px, rows * px), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
@@ -38,8 +75,8 @@ def draw_claude(size=300, step=None, blink=False, tool=True):
     walking = step is not None
     ay_l, ay_r = ((2, 3) if step % 2 else (3, 2)) if walking else (2, 2)
 
-    # chave inglesa (desenhada ANTES do braço, para a mão ficar na frente do cabo)
-    if tool:
+    # acessório (desenhado ANTES do braço, para a mão ficar na frente dele)
+    if tool and not coffee:
         dy = ay_l - 2  # acompanha o braço esquerdo
         box(0, 1 + dy, 0, 1 + dy, STEEL, 0, 0)       # mandíbula esquerda
         box(2, 1 + dy, 2, 1 + dy, STEEL, 0, 0)       # mandíbula direita
@@ -47,6 +84,9 @@ def draw_claude(size=300, step=None, blink=False, tool=True):
         box(1, 4 + dy, 1, 7 + dy, STEEL, 0, 0)       # cabo
         box(0, 8 + dy, 2, 8 + dy, STEEL, 0, 0)       # ponta arredondada do cabo
         box(1, 8 + dy, 1, 8 + dy, STEEL_DARK, 0, 0)  # furinho na ponta
+
+    if coffee:  # xícara na mão esquerda: o bracinho (desenhado depois) segura a alça
+        _draw_cup(d, ox * px, (ay_l + oy + 1) * px, max(1, px // 2), 1 if (walking and step % 2) else -1)
 
     # corpo
     box(2, 0, 9, 5, CLAUDE_ORANGE)
@@ -67,20 +107,24 @@ def draw_claude(size=300, step=None, blink=False, tool=True):
     return img
 
 
-def draw_codex(size=300, step=None, blink=False):
+def draw_codex(size=300, step=None, blink=False, tool=True, skin="default"):
     """Mascote do Codex em pixel art: cabeça de nuvem com tela de terminal (>_),
     corpinho com um >_ no peito, bracinhos e pezinhos.
 
     Grade de 14x15 células. `step` alterna braços e pés (caminhada);
     `blink` apaga o cursor `_` da tela (cursor piscando = trabalhando).
+    `skin` "coffee" põe uma xícara de café na mão esquerda (só com `tool`, ou seja, trabalhando).
     """
-    cols, rows = 14, 15
+    rows = 15
+    coffee = tool and skin == "coffee"
+    ox = 4 if coffee else 0  # a xícara ocupa quatro colunas a mais à esquerda
+    cols = 14 + ox
     px = max(1, size // rows)
     img = Image.new("RGBA", (cols * px, rows * px), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
     def box(x0, y0, x1, y1, color):  # coordenadas inclusivas, em células
-        d.rectangle([x0 * px, y0 * px, (x1 + 1) * px - 1, (y1 + 1) * px - 1], fill=color)
+        d.rectangle([(x0 + ox) * px, y0 * px, (x1 + 1 + ox) * px - 1, (y1 + 1) * px - 1], fill=color)
 
     walking = step is not None
 
@@ -115,6 +159,8 @@ def draw_codex(size=300, step=None, blink=False):
 
     # bracinhos
     ay_l, ay_r = ((10, 11) if step % 2 else (11, 10)) if walking else (10, 10)
+    if coffee:  # xícara na mão esquerda, na frente da nuvem; o bracinho (depois) segura a alça
+        _draw_cup(d, (3 + ox) * px, (ay_l + 1) * px, max(1, px // 2), 1 if (walking and step % 2) else -1)
     box(3, ay_l, 3, ay_l + 1, CODEX_ARM)
     box(10, ay_r, 10, ay_r + 1, CODEX_ARM)
 
@@ -225,6 +271,7 @@ def _font(size):
 def render(status, step=None, size=(W, H)):
     """status: {'claude': 'working'|'open'|'closed'|'off', ...} (aceita também True/False).
     Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza."""
+    from . import settings
     from .i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)
@@ -236,8 +283,10 @@ def render(status, step=None, size=(W, H)):
     x0 = (w - total) // 2
     y0 = (h - logo) // 2 - 40
     makers = {
-        "claude": lambda: draw_claude(logo, step, tool=state_of(status, "claude") == "working"),
-        "codex": lambda: draw_codex(logo, step),
+        "claude": lambda: draw_claude(logo, step, tool=state_of(status, "claude") == "working",
+                                      skin=settings.get()["skins"]["claude"]),
+        "codex": lambda: draw_codex(logo, step, tool=state_of(status, "codex") == "working",
+                                    skin=settings.get()["skins"]["codex"]),
         "cursor": lambda: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6),
     }
     for i, key in enumerate(keys):

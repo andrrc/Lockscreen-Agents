@@ -9,6 +9,8 @@ import os
 import time
 from pathlib import Path
 
+import templates
+
 APP_NAME = "LockscreenAgents"
 OUT_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME
 SETTINGS = OUT_DIR / "settings.json"
@@ -17,6 +19,7 @@ TOOLS = ("claude", "codex", "cursor")
 
 DEFAULTS = {
     "lang": "auto",            # auto | pt | en
+    "template": templates.DEFAULT,  # modelo visual (veja templates.py)
     "tools": {"claude": True, "codex": True, "cursor": True},
     "active_window": 180,      # s sem atividade nos arquivos até deixar de estar "em uso"
     "follow_focus": True,      # janela da ferramenta em foco + você ativo conta como "em uso"
@@ -51,6 +54,8 @@ def _clean(raw):
                             cfg["tools"][name] = bool(v[name])
             elif k == "lang":
                 cfg["lang"] = v if v in ("auto", "pt", "en") else "auto"
+            elif k == "template":  # só aceita modelos já disponíveis
+                cfg["template"] = v if v in templates.available_ids() else templates.DEFAULT
             elif isinstance(default, bool):
                 cfg[k] = bool(v)
             elif isinstance(default, int):

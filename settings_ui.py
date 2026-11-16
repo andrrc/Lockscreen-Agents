@@ -18,6 +18,7 @@ import threading
 import time
 import traceback
 import tkinter as tk
+import webbrowser
 from ctypes import wintypes
 from pathlib import Path
 from tkinter import font as tkfont
@@ -26,6 +27,7 @@ from PIL import Image, ImageDraw, ImageTk
 
 import autostart
 import settings
+import templates
 from i18n import duration, t
 from render import ACCENT as TOOL_ACCENT
 from logo import logo
@@ -56,6 +58,7 @@ SS = 4                     # supersampling dos desenhos
 S = 1.0                    # escala de DPI (definida ao abrir a janela)
 
 LOG = settings.OUT_DIR / "settings_ui.log"
+REPO_URL = "https://github.com/andrrc/Lockscreen-Agents"
 
 
 def px(v):
@@ -175,6 +178,9 @@ def icon(name, size, color):
             d.line([(8 * u, 20.4 * u), (16 * u, 20.4 * u)], fill=c, width=lw)
             dot(8, 20.4, lw / 2 / u)
             dot(16, 20.4, lw / 2 / u)
+        elif name == "layers":
+            rr(4, 4, 16, 16, 2.6, outline=c)
+            rr(8, 8, 20, 20, 2.6, fill=SIDE + (255,), outline=c)
         elif name == "sliders":
             for y, kx in ((8, 9), (16, 15)):
                 d.line([(3 * u, y * u), (21 * u, y * u)], fill=c, width=lw)
@@ -307,14 +313,15 @@ class Card:
     R = 14
 
     def __init__(self, g, x, y, w, h):
-        self.g, self.t = g, 0.0
+        self.g, self.t, self.active = g, 0.0, False  # active: borda de destaque (item selecionado)
         self.w, self.h = px(w), px(h)
         self.x0, self.y0 = px(x), px(y)
         self.item = g.img(x, y, self._image())
 
     def _image(self):
         k = q(self.t, 8)
-        return rrect(self.w, self.h, px(self.R), mix(CARD, CARD_HOVER, k), mix(BORDER, BORDER_HOVER, k))
+        border = mix(ACC, ACC_HOVER, k) if self.active else mix(BORDER, BORDER_HOVER, k)
+        return rrect(self.w, self.h, px(self.R), mix(CARD, CARD_HOVER, k), border, 2 if self.active else 1)
 
     def set(self, t):
         self.t = t
@@ -583,7 +590,8 @@ class Page:
 
 
 class SettingsApp:
-    PAGES = [("overview", "nav.overview", "grid"), ("tools", "nav.tools", "chip"),
+    PAGES = [("overview", "nav.overview", "grid"), ("templates", "nav.templates", "layers"),
+             ("tools", "nav.tools", "chip"),
              ("detection", "nav.detection", "pulse"), ("saver", "nav.saver", "monitor"),
              ("general", "nav.general", "sliders")]
 
@@ -796,6 +804,40 @@ class SettingsApp:
 
             self.anim.run(f"chip_{key}", 380, step)
 
+    # -- modelos
+    def page_templates(self):
+        hg = self.header("tpl.title", "tpl.sub")
+        Button(self, hg, CX + CW - 176, 34, 176, 40, t("tpl.suggest"),
+               lambda: webbrowser.open(REPO_URL + "/issues/new"))
+        pw, ph, h = 120, 68, 88
+        for i, tpl in enumerate(templates.TEMPLATES):
+            key, ok = tpl["id"], tpl["available"]
+            y = 120 + i * (h + 10)
+            g = self.new_group()
+            card = g.card(CX, y, CW, h)
+            self.hover_cards.append(card)
+            card.active = ok and key == self.cfg["template"]
+            card.set(card.t)
+            g.img(CX + 16, y + (h - ph) / 2, self._tpl_photo(key, ok, px(pw), px(ph)))
+            tx = CX + 16 + pw + 20
+            g.text(tx, y + 18, t(f"tpl.{key}.n"), self.f["label"], TEXT if ok else MUTED)
+            g.text(tx, y + 43, t(f"tpl.{key}.d"), self.f["small"], MUTED if ok else DIM, width=270)
+            label = t("tpl.active") if card.active else ("" if ok else t("tpl.soon"))
+            if label:
+                bw, bh = int(self.f["small"].measure(label) / S) + 30, 28
+                bx, by = CX + CW - 22 - bw, y + (h - bh) / 2
+                g.img(bx, by, rrect(px(bw), px(bh), px(bh) // 2, ACC if card.active else (30, 30, 37),
+                                    None if card.active else (56, 56, 66)))
+                g.text(bx + bw / 2, by + bh / 2, label, self.f["small"],
+                       (255, 255, 255) if card.active else MUTED, anchor="center")
+            g.target(CX, y, CW, h, TemplateHit(self, key, ok))
+
+    def _tpl_photo(self, key, ok, w, h):
+        cache = self.__dict__.setdefault("tpl_photos", {})
+        if (key, w, h) not in cache:
+            cache[(key, w, h)] = ImageTk.PhotoImage(template_preview(key, ok, w, h))
+        return cache[(key, w, h)]
+
     # -- ferramentas
     def page_tools(self):
         self.header("tools.title", "tools.sub")
@@ -950,7 +992,7 @@ class SettingsApp:
             subprocess.Popen([sys.executable, str(script), "/s"], cwd=str(script.parent))
 
     # ---- aviso (toast)
-    def toast(self, text, warn=False):
+    def toast(self, text, warn=False, info=False):
         c = self.c
         if self.toast_job:
             self.root.after_cancel(self.toast_job)
@@ -959,7 +1001,7 @@ class SettingsApp:
         w, h = mw, px(38)
         x = px(W) - px(36) - w
         y_end = px(H) - px(30) - h
-        col = RED if warn else GREEN
+        col = RED if warn else (ACC if info else GREEN)
         bg = c.create_image(x, px(H) + px(10), image=rrect(w, h, h // 2, (30, 30, 37), (56, 56, 66)),
                             anchor="nw", tags="toast")
         dot = c.create_image(x + px(16), px(H) + px(10) + (h - px(10)) // 2, image=circle(px(10), col),
@@ -1107,6 +1149,82 @@ class SettingsApp:
         except tk.TclError:
             return
         self.root.after(70, self.pulse)
+
+
+class TemplateHit:
+    """Clique em um modelo: seleciona se ja existe, senao avisa que esta em breve."""
+
+    def __init__(self, app, key, available):
+        self.app, self.key, self.available = app, key, available
+
+    def enter(self):
+        pass
+
+    def leave(self):
+        pass
+
+    def press(self, _x, _y):
+        if not self.available:
+            self.app.toast(t("tpl.soon_toast"), info=True)
+        elif self.key != self.app.cfg["template"]:
+            self.app.set_value("template", self.key)
+            self.app.relang()  # redesenha a pagina com o novo modelo marcado
+
+
+_tpl_cache = {}
+
+
+def concept_preview(kind, w, h):
+    """Desenhos de conceito dos modelos futuros (miniatura 16:9). Para um modelo novo, acrescente um ramo."""
+    ss = 2
+    W2, H2 = w * ss, h * ss
+    img = Image.new("RGB", (W2, H2), BG)
+    d = ImageDraw.Draw(img)
+    cols = [ACC, TOOL_ACCENT["codex"], TOOL_ACCENT["cursor"]]
+    if kind == "minimal":
+        for i, c in enumerate(cols):
+            cx, cy, r = W2 * (0.25 + 0.25 * i), H2 * 0.44, H2 * 0.085
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=c)
+            d.rounded_rectangle([cx - W2 * 0.07, H2 * 0.64, cx + W2 * 0.07, H2 * 0.67], radius=H2 * 0.02,
+                                fill=(70, 70, 80))
+    elif kind == "terminal":
+        widths = [0.50, 0.34, 0.58, 0.28, 0.0]
+        for i, wd in enumerate(widths):
+            y = H2 * (0.17 + i * 0.15)
+            x = W2 * 0.10
+            d.line([(x, y - H2 * 0.03), (x + W2 * 0.03, y), (x, y + H2 * 0.03)], fill=cols[0], width=max(2, ss))
+            if wd:
+                d.rounded_rectangle([x + W2 * 0.07, y - H2 * 0.025, x + W2 * (0.07 + wd), y + H2 * 0.025],
+                                    radius=H2 * 0.02, fill=cols[0] if i == 0 else (84, 84, 96))
+            else:
+                d.rectangle([x + W2 * 0.07, y - H2 * 0.04, x + W2 * 0.10, y + H2 * 0.04], fill=cols[0])
+    elif kind == "panel":
+        for i, (c, fill) in enumerate(zip(cols, (0.78, 0.44, 0.22))):
+            y = H2 * (0.26 + i * 0.22)
+            d.rounded_rectangle([W2 * 0.08, y - H2 * 0.025, W2 * 0.14, y + H2 * 0.025], radius=H2 * 0.02, fill=c)
+            d.rounded_rectangle([W2 * 0.20, y - H2 * 0.04, W2 * 0.90, y + H2 * 0.04], radius=H2 * 0.04,
+                                fill=(36, 36, 44))
+            d.rounded_rectangle([W2 * 0.20, y - H2 * 0.04, W2 * (0.20 + 0.70 * fill), y + H2 * 0.04],
+                                radius=H2 * 0.04, fill=c)
+    return img.resize((w, h), Image.LANCZOS)
+
+
+def template_preview(key, available, w, h):
+    """Miniatura do modelo, com cantos arredondados (esmaecida se ainda nao existe)."""
+    if (key, available, w, h) not in _tpl_cache:
+        if key == "mascots":
+            full = render({k: "working" for k in settings.TOOLS})
+            img = full.crop((240, 160, 1680, 970)).resize((w, h), Image.LANCZOS)  # recorte 16:9 nos mascotes
+        else:
+            img = concept_preview(key, w, h)
+        if not available:
+            img = Image.blend(img, Image.new("RGB", img.size, BG), 0.45)
+        img = img.convert("RGBA")
+        mask = Image.new("L", (w * 3, h * 3), 0)
+        ImageDraw.Draw(mask).rounded_rectangle([0, 0, w * 3 - 1, h * 3 - 1], radius=px(8) * 3, fill=255)
+        img.putalpha(mask.resize((w, h), Image.LANCZOS))
+        _tpl_cache[(key, available, w, h)] = img
+    return _tpl_cache[(key, available, w, h)]
 
 
 class _ChromeGroup:

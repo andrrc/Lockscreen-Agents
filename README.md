@@ -32,10 +32,13 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 
 ![Janela de configurações: visão geral com prévia ao vivo](docs/settings-overview.png)
 
+- **Modelos**: o visual da tela. Hoje existe o modelo **Mascotes**; os próximos aparecem como “em breve” (e há um botão para sugerir o seu).
 - **Ferramentas**: escolha quais mascotes aparecem (Claude Code, Codex, Cursor).
 - **Detecção**: tempo até ficar ocioso, tolerância para "fechado" e se a janela em foco conta como em uso.
 - **Protetor de tela**: ligar, abrir após N minutos, bloquear o PC ao fechar.
 - **Geral**: idioma (automático, português ou inglês), iniciar com o Windows, abrir a pasta de dados e restaurar os padrões.
+
+![Janela de configurações: modelos](docs/settings-templates.png)
 
 ![Janela de configurações: detecção](docs/settings-detection.png)
 
@@ -95,6 +98,7 @@ Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (co
 | `tray.py` | app da bandeja, junta tudo |
 | `settings_ui.py` | janela de configurações (Tk com controles desenhados à mão) |
 | `settings.py` | lê e grava o `settings.json`, com validação |
+| `templates.py` | lista dos modelos (visuais), incluindo os “em breve” |
 | `i18n.py` | textos em português e inglês |
 | `autostart.py` | início automático com o Windows |
 | `install.py` | instala, liga o autostart e remove |
@@ -126,7 +130,7 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 
 - **Lock screen**: renders an image with each tool's state and sets it as your lock screen whenever the state changes. Press `Win + L` to see it.
 - **Animated screensaver**: after a few idle minutes, a fullscreen scene with the animated mascots. Any key or mouse move closes it.
-- **Settings window**: modern and animated, with a live lock screen preview. Pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
+- **Settings window**: modern and animated, with a live lock screen preview. Browse the templates (more are coming soon), pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
 - **Tray icon**: double-click to open the settings; the menu also pauses, refreshes the lock screen and tests the screensaver.
 - Starts with Windows.
 

@@ -28,6 +28,7 @@ DEFAULTS = {
     "saver_on": True,
     "idle_min": 5,             # min sem mexer no PC até abrir o protetor
     "lock_after": False,
+    "lock_wallpaper": False,   # só macOS: troca o papel de parede (a lock screen mostra ele)
 }
 
 # (mínimo, máximo) dos valores numéricos

@@ -43,3 +43,8 @@ def test_corrupted_file_is_ignored():
 def test_reset_restores_defaults():
     settings.update(idle_min=30)
     assert settings.reset()["idle_min"] == settings.DEFAULTS["idle_min"]
+
+
+def test_lock_wallpaper_is_off_by_default_and_saved():
+    assert settings.load()["lock_wallpaper"] is False
+    assert settings.update(lock_wallpaper=True)["lock_wallpaper"] is True

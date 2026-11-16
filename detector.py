@@ -7,10 +7,12 @@ from ctypes import wintypes
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import settings
+
 HOME = Path.home()
-ACTIVE_WINDOW = 180  # segundos sem atividade nos arquivos até deixar de considerar "em uso"
-# (a ferramenta só grava arquivos quando está respondendo; enquanto você lê/digita
-# entre uma resposta e outra ela fica quieta, por isso a janela é longa)
+ACTIVE_WINDOW = 180  # padrão (configurável em settings.py): segundos sem atividade nos arquivos
+# até deixar de considerar "em uso". A ferramenta só grava arquivos quando está respondendo;
+# enquanto você lê/digita entre uma resposta e outra ela fica quieta, por isso a janela é longa.
 
 
 def _mtime(path):
@@ -126,12 +128,10 @@ def running_exes():
     return names
 
 
-CLOSE_GRACE = 25  # segundos sem ver o processo antes de considerar "fechado"
 _last_seen = {}   # ferramenta -> última vez que o processo (ou atividade) foi visto
 
 # Janela em foco: se você está com o app da ferramenta na frente e mexendo no PC, está "em uso"
 # (o Cursor, por exemplo, quase não grava arquivos enquanto você só edita código).
-FG_HOLD = 120        # segundos que continua "em uso" depois de a janela sair de foco
 FG_MAX_IDLE = 180    # sem teclado/mouse por mais que isso, janela em foco não conta
 FG_MATCH = {         # ferramenta -> (nomes de exe, trechos do caminho)
     "claude": ({"claude.exe"}, ()),
@@ -193,25 +193,33 @@ def tool_of_path(path):
     return None
 
 
-def get_states(window=ACTIVE_WINDOW):
+def get_states(window=None):
     """Estado de cada ferramenta: 'working' (arquivos mudando), 'open' (processo rodando,
-    sem atividade) ou 'closed' (nenhum processo por mais de CLOSE_GRACE segundos).
+    sem atividade), 'closed' (nenhum processo por mais de `close_grace` segundos) ou 'off'
+    (desligada nas configurações). Os limites vêm de settings.py.
     A tolerância evita que uma leitura de processos falha (ex.: ao bloquear o PC) vire 'fechado'."""
+    cfg = settings.get()
+    window = cfg["active_window"] if window is None else window
     now = time.time()
     working, _ = get_status(window)
     try:
         running = running_exes()
     except Exception:  # noqa: BLE001
         running = None  # leitura falhou: mantém o que já se sabia
-    try:  # janela em foco + usuário mexendo no PC = ferramenta em uso
-        fg = tool_of_path(foreground_path())
-        if fg and idle_seconds() < FG_MAX_IDLE:
-            _last_fg[fg] = now
-    except Exception:  # noqa: BLE001
-        pass
+    if cfg["follow_focus"]:
+        try:  # janela em foco + usuário mexendo no PC = ferramenta em uso
+            fg = tool_of_path(foreground_path())
+            if fg and idle_seconds() < FG_MAX_IDLE:
+                _last_fg[fg] = now
+        except Exception:  # noqa: BLE001
+            pass
     states = {}
     for name in SOURCES:
-        if working[name] or now - _last_fg.get(name, 0) <= FG_HOLD:
+        if not cfg["tools"].get(name, True):
+            states[name] = "off"
+            continue
+        focused = cfg["follow_focus"] and now - _last_fg.get(name, 0) <= cfg["focus_hold"]
+        if working[name] or focused:
             _last_seen[name] = now
             states[name] = "working"
             continue
@@ -220,7 +228,7 @@ def get_states(window=ACTIVE_WINDOW):
         seen = _last_seen.get(name)
         if seen is None and running is None:
             seen = now  # sem informação nenhuma: assume aberto
-        states[name] = "open" if seen is not None and now - seen <= CLOSE_GRACE else "closed"
+        states[name] = "open" if seen is not None and now - seen <= cfg["close_grace"] else "closed"
     return states
 
 

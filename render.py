@@ -221,21 +221,25 @@ def _font(size):
 
 
 def render(status, step=None, size=(W, H)):
-    """status: {'claude': bool, 'codex': bool, 'cursor': bool}"""
+    """status: {'claude': 'working'|'open'|'closed'|'off', ...} (aceita também True/False).
+    Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza."""
+    from i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)
     d = ImageDraw.Draw(img)
     logo = 300
     gap = 140
-    total = 3 * logo + 2 * gap
+    keys = [k for k in ("claude", "codex", "cursor") if state_of(status, k) != "off"]
+    total = len(keys) * logo + (len(keys) - 1) * gap
     x0 = (w - total) // 2
     y0 = (h - logo) // 2 - 40
-    items = [
-        ("claude", "Claude Code", draw_claude(logo, step, tool=state_of(status, "claude") == "working")),
-        ("codex", "Codex", draw_codex(logo, step)),
-        ("cursor", "Cursor", draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6)),
-    ]
-    for i, (key, label, logo_img) in enumerate(items):
+    makers = {
+        "claude": lambda: draw_claude(logo, step, tool=state_of(status, "claude") == "working"),
+        "codex": lambda: draw_codex(logo, step),
+        "cursor": lambda: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6),
+    }
+    for i, key in enumerate(keys):
+        label, logo_img = t("tool." + key), makers[key]()
         x = x0 + i * (logo + gap)
         st = state_of(status, key)
         active = st == "working"
@@ -256,7 +260,7 @@ def render(status, step=None, size=(W, H)):
         color = (235, 235, 235) if active else ((95, 95, 100) if st == "open" else (52, 52, 56))
         tw = d.textlength(label, font=font)
         d.text((x + (logo - tw) / 2, y0 + logo + 40), label, fill=color, font=font)
-        state = {"working": "em uso", "open": "ocioso", "closed": "fechado"}.get(st, "ocioso")
+        state = t("state." + st) if st in ("working", "open", "closed") else t("state.open")
         sfont = _font(24)
         sw = d.textlength(state, font=sfont)
         d.text((x + (logo - sw) / 2, y0 + logo + 90), state,

@@ -17,7 +17,9 @@ from pathlib import Path
 
 from PIL import ImageTk
 
+import settings
 from detector import get_states
+from i18n import t
 from render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor
 
 FPS = 30
@@ -78,11 +80,12 @@ def monitors():
 
 
 class Actor:
-    def __init__(self, scene, idx, spec):
+    def __init__(self, scene, idx, count, spec):
         self.scene = scene
         self.key, self.label, self.draw, self.walks = spec
+        self.label = t("tool." + self.key)
         c = scene.canvas
-        lane_w = scene.w / 3
+        lane_w = scene.w / count
         self.lane_l = scene.x0 + idx * lane_w
         self.lane_r = self.lane_l + lane_w
         self.cx = (self.lane_l + self.lane_r) / 2
@@ -99,7 +102,7 @@ class Actor:
         self.name_t = c.create_text((self.lane_l + self.lane_r) / 2, scene.ground + scene.h * 0.07,
                                     text=self.label, font=("Segoe UI", fs), fill="#5f5f64")
         self.state_t = c.create_text((self.lane_l + self.lane_r) / 2, scene.ground + scene.h * 0.115,
-                                     text="ocioso", font=("Segoe UI", int(fs * 0.75)), fill="#46464b")
+                                     text=t("state.open"), font=("Segoe UI", int(fs * 0.75)), fill="#46464b")
 
     def sprite(self, color, step, flip, blink):
         k = (color, step, flip, blink, self.closed)
@@ -125,7 +128,7 @@ class Actor:
         idle_fill = "#46464b" if state == "open" else "#2d2d30"
         c.itemconfig(self.name_t, fill=name_fill)
         c.itemconfig(self.state_t,
-                     text={"working": "em uso", "open": "ocioso", "closed": "fechado"}.get(state, "ocioso"),
+                     text=t("state." + state) if state in ("working", "open", "closed") else "",
                      fill=hexcolor(ACCENT.get(self.key, (200, 200, 200))) if active else idle_fill)
 
     def tick(self, frame):
@@ -168,7 +171,9 @@ class Scene:
         self.size = int(min(self.w / 3 * 0.6, self.h * 0.42))
         self.ground = self.y0 + int(self.h * 0.60)
         canvas.create_line(self.x0, self.ground + 4, self.x0 + self.w, self.ground + 4, fill="#1d1d22")
-        self.actors = [Actor(self, i, spec) for i, spec in enumerate(SPECS)]
+        tools = settings.get()["tools"]
+        specs = [sp for sp in SPECS if tools.get(sp[0], True)]
+        self.actors = [Actor(self, i, len(specs), spec) for i, spec in enumerate(specs)]
 
     def apply_status(self, status):
         for a in self.actors:

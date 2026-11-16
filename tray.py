@@ -1,7 +1,6 @@
 """Ícone na bandeja: monitora Claude Code, Codex e Cursor, atualiza a lock screen
 e abre o protetor de tela animado quando o PC fica ocioso."""
 import ctypes
-import json
 import os
 import subprocess
 import sys
@@ -13,18 +12,17 @@ from pathlib import Path
 import pystray
 from PIL import Image
 
+import settings
 from detector import get_states
+from i18n import t
 from lockscreen import set_lockscreen
 from render import draw_claude, render
 
-APP_NAME = "LockscreenAgents"
-OUT_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / APP_NAME
+APP_NAME = settings.APP_NAME
+OUT_DIR = settings.OUT_DIR
 LOG = OUT_DIR / "log.txt"
-SETTINGS = OUT_DIR / "settings.json"
 POLL = 3  # segundos entre verificações
-NAMES = {"claude": "Claude", "codex": "Codex", "cursor": "Cursor"}
-IDLE_CHOICES = (1, 2, 5, 10, 15)  # minutos
-DEFAULTS = {"saver_on": True, "idle_min": 5, "lock_after": False}
+TOOLS = settings.TOOLS
 
 
 def log(msg):
@@ -36,22 +34,6 @@ def log(msg):
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
     except OSError:
         pass
-
-
-def load_settings():
-    cfg = dict(DEFAULTS)
-    try:
-        cfg.update(json.loads(SETTINGS.read_text(encoding="utf-8")))
-    except (OSError, ValueError):
-        pass
-    return cfg
-
-
-def save_settings(cfg):
-    try:
-        SETTINGS.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-    except OSError:
-        log("não consegui salvar settings.json")
 
 
 _mutex = None
@@ -102,8 +84,8 @@ def make_icon(paused=False):
 
 class App:
     def __init__(self):
-        self.cfg = load_settings()
         self.paused = False
+        self.cfg_key = None     # assinatura das configurações que mudam a imagem (ferramentas, idioma)
         self.status = {}
         self.last_key = None
         self.n = 0
@@ -117,53 +99,36 @@ class App:
     # ---- menu ----
     def _status_text(self, _item=None):
         if not self.status:
-            return "Aguardando..."
-        sym = {"working": "●", "open": "○", "closed": "·"}  # trabalhando / aberto / fechado
-        return "  ".join(f"{NAMES[k]} {sym.get(self.status.get(k), '·')}" for k in NAMES)
-
-    def _idle_item(self, minutes):
-        def pick(_icon, _item):
-            self.cfg["idle_min"] = minutes
-            save_settings(self.cfg)
-            log(f"protetor: ativar após {minutes} min")
-
-        return pystray.MenuItem(
-            f"{minutes} minuto" + ("s" if minutes > 1 else ""), pick,
-            checked=lambda _i: self.cfg["idle_min"] == minutes, radio=True)
+            return t("tray.waiting")
+        sym = {"working": "●", "open": "○", "closed": "·"}  # em uso / aberto / fechado
+        return "  ".join(f"{t('tool.' + k).split()[0]} {sym.get(self.status.get(k), '·')}"
+                         for k in TOOLS if self.status.get(k) != "off")
 
     def _menu(self):
         return pystray.Menu(
             pystray.MenuItem(self._status_text, None, enabled=False),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Pausar", self._toggle_pause, checked=lambda _i: self.paused),
-            pystray.MenuItem("Atualizar lock screen agora", self._force),
+            pystray.MenuItem(lambda _i: t("tray.settings"), self._open_settings, default=True),
+            pystray.MenuItem(lambda _i: t("tray.pause"), self._toggle_pause, checked=lambda _i: self.paused),
+            pystray.MenuItem(lambda _i: t("tray.refresh"), self._force),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Protetor de tela animado", self._toggle_saver,
-                             checked=lambda _i: self.cfg["saver_on"]),
-            pystray.MenuItem("Ativar após", pystray.Menu(*[self._idle_item(m) for m in IDLE_CHOICES])),
-            pystray.MenuItem("Bloquear o PC ao fechar o protetor", self._toggle_lock_after,
-                             checked=lambda _i: self.cfg["lock_after"]),
-            pystray.MenuItem("Testar protetor agora", self._test_saver),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Abrir pasta do app", self._open_folder),
-            pystray.MenuItem("Sair", self._quit),
+            pystray.MenuItem(lambda _i: t("tray.test"), self._test_saver),
+            pystray.MenuItem(lambda _i: t("tray.folder"), self._open_folder),
+            pystray.MenuItem(lambda _i: t("tray.quit"), self._quit),
         )
+
+    def _open_settings(self, _icon=None, _item=None):
+        script = Path(__file__).with_name("settings_ui.py")
+        if not script.exists():
+            log("settings_ui.py não encontrado")
+            return
+        subprocess.Popen([sys.executable, str(script)], cwd=str(script.parent))  # ele mesmo evita duplicar
 
     def _toggle_pause(self, icon, _item):
         self.paused = not self.paused
         icon.icon = make_icon(self.paused)
         log("pausado" if self.paused else "retomado")
         self.wake.set()
-
-    def _toggle_saver(self, _icon, _item):
-        self.cfg["saver_on"] = not self.cfg["saver_on"]
-        save_settings(self.cfg)
-        log(f"protetor {'ligado' if self.cfg['saver_on'] else 'desligado'}")
-
-    def _toggle_lock_after(self, _icon, _item):
-        self.cfg["lock_after"] = not self.cfg["lock_after"]
-        save_settings(self.cfg)
-        log(f"bloquear ao fechar protetor: {self.cfg['lock_after']}")
 
     def _test_saver(self, _icon, _item):
         if self.saver is None:
@@ -208,21 +173,28 @@ class App:
             log(f"protetor fechado (código {self.saver.returncode})")
             was_auto, self.saver = self.saver_auto, None
             self.armed = False  # só reabre depois que o usuário voltar a usar o PC
-            if was_auto and self.cfg["lock_after"] and not session_locked():
+            if was_auto and settings.get()["lock_after"] and not session_locked():
                 log("bloqueando o PC (opção ligada)")
                 ctypes.windll.user32.LockWorkStation()
             return
         idle = idle_seconds()
         if idle < 10:
             self.armed = True
-        if (self.cfg["saver_on"] and self.armed and not self.paused
-                and idle >= self.cfg["idle_min"] * 60 and not session_locked()):
+        cfg = settings.get()
+        if (cfg["saver_on"] and self.armed and not self.paused
+                and idle >= cfg["idle_min"] * 60 and not session_locked()):
             self.start_saver(auto=True)
 
     # ---- trabalho em segundo plano ----
     def worker(self):
         while not self.stop.is_set():
             try:
+                cfg = settings.get()
+                key = (tuple(sorted(cfg["tools"].items())), cfg["lang"])
+                if key != self.cfg_key:  # mudou ferramentas ou idioma: redesenha a lock screen
+                    self.cfg_key = key
+                    self.last_key = None
+                    self.icon.update_menu()
                 if not self.paused:
                     status = get_states()
                     self.status = status

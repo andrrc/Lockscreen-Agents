@@ -20,8 +20,22 @@ Mascotes na tela de bloqueio e no protetor de tela do Windows que mostram, num r
 
 - **Tela de bloqueio**: gera uma imagem com o estado de cada ferramenta e a define como lock screen sempre que o estado muda. Aperte `Win + L` e veja.
 - **Protetor de tela animado**: depois de alguns minutos sem mexer no PC, abre uma tela cheia com os mascotes animados. Qualquer tecla ou movimento do mouse fecha.
-- **Ícone na bandeja** (perto do relógio) com menu para pausar, forçar atualização, ligar ou desligar o protetor e escolher depois de quantos minutos ele abre.
+- **Janela de configurações** moderna e animada, com prévia ao vivo da tela de bloqueio (veja abaixo).
+- **Ícone na bandeja** (perto do relógio): clique duas vezes para abrir as configurações; o menu também pausa, atualiza a lock screen e testa o protetor.
 - Inicia junto com o Windows.
+
+## Configurações
+
+Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). Tudo é salvo na hora.
+
+![Janela de configurações: visão geral com prévia ao vivo](docs/settings-overview.png)
+
+- **Ferramentas**: escolha quais mascotes aparecem (Claude Code, Codex, Cursor).
+- **Detecção**: tempo até ficar ocioso, tolerância para "fechado" e se a janela em foco conta como em uso.
+- **Protetor de tela**: ligar, abrir após N minutos, bloquear o PC ao fechar.
+- **Geral**: idioma (automático, português ou inglês), iniciar com o Windows, abrir a pasta de dados e restaurar os padrões.
+
+![Janela de configurações: detecção](docs/settings-detection.png)
 
 ## Requisitos
 
@@ -58,13 +72,13 @@ Tudo local, sem login e sem internet. O app **não lê o conteúdo** de nada, s�
 - a **lista de processos** (`claude.exe`, `codex.exe`, `cursor.exe`) para saber se está aberta;
 - **qual janela está em foco** e se você mexeu no teclado ou mouse nos últimos 3 minutos. O Cursor, por exemplo, quase não grava arquivos enquanto você só edita código.
 
-Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (com você ativo, e por mais 2 minutos depois de perder o foco) → **em uso**. Processo aberto, sem atividade → **ocioso**. Sem processo por mais de 25 segundos → **fechado**. Os números ficam no topo do `detector.py`.
+Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (com você ativo, e por mais 2 minutos depois de perder o foco) → **em uso**. Processo aberto, sem atividade → **ocioso**. Sem processo por mais de 25 segundos → **fechado**. Todos esses tempos podem ser ajustados na página **Detecção** das configurações.
 
 ## Limitações
 
 - Só Windows. A lock screen é uma **imagem estática** atualizada a cada mudança de estado, não uma animação. A animação fica no protetor de tela.
 - O protetor é aberto pelo próprio app quando o PC fica parado (não é um arquivo `.scr`).
-- Os textos dos mascotes (“em uso”, “ocioso”, “fechado”) estão em português. Traduções são bem-vindas.
+- Idiomas disponíveis: português e inglês. Para adicionar outro, edite `i18n.py`.
 - Se o app não aparecer na bandeja depois de reiniciar o PC, abra `%LOCALAPPDATA%\LockscreenAgents\log.txt` e rode `python install.py` de novo.
 
 ## Estrutura
@@ -76,6 +90,10 @@ Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (co
 | `lockscreen.py` | aplica a imagem como lock screen (API WinRT) |
 | `saver.py` | protetor de tela animado (Tk) |
 | `tray.py` | app da bandeja, junta tudo |
+| `settings_ui.py` | janela de configurações (Tk com controles desenhados à mão) |
+| `settings.py` | lê e grava o `settings.json`, com validação |
+| `i18n.py` | textos em português e inglês |
+| `autostart.py` | início automático com o Windows |
 | `install.py` | instala, liga o autostart e remove |
 | `make_demo.py` | regenera as imagens da pasta `docs/` |
 
@@ -105,7 +123,8 @@ Mascots on the Windows lock screen and screensaver that show at a glance which A
 
 - **Lock screen**: renders an image with each tool's state and sets it as your lock screen whenever the state changes. Press `Win + L` to see it.
 - **Animated screensaver**: after a few idle minutes, a fullscreen scene with the animated mascots. Any key or mouse move closes it.
-- **Tray icon** with a menu to pause, force a refresh, toggle the screensaver and pick the idle delay.
+- **Settings window**: modern and animated, with a live lock screen preview. Pick which tools show up, tune the detection timings, configure the screensaver and switch language (Portuguese/English). Everything saves instantly.
+- **Tray icon**: double-click to open the settings; the menu also pauses, refreshes the lock screen and tests the screensaver.
 - Starts with Windows.
 
 ### Requirements
@@ -135,12 +154,12 @@ Fully local, no login, no network. It never reads file contents, only:
 - the **process list** (`claude.exe`, `codex.exe`, `cursor.exe`);
 - the **foreground window**, plus whether you used the keyboard or mouse in the last 3 minutes.
 
-Recent file activity or the tool in focus while you are active → **in use**. Process running, no activity → **idle**. No process for 25+ seconds → **closed**. Thresholds are constants at the top of `detector.py`.
+Recent file activity or the tool in focus while you are active → **in use**. Process running, no activity → **idle**. No process for 25+ seconds → **closed**. All thresholds are adjustable on the **Detection** page of the settings window.
 
 ### Limitations
 
 - Windows only. The lock screen is a **static image** refreshed on state changes; the animation lives in the screensaver, which the tray app launches when the PC is idle (it is not a `.scr` file).
-- On-screen labels are in Portuguese. Translations are welcome.
+- Available languages: Portuguese and English. To add another one, edit `i18n.py`.
 
 ### License
 

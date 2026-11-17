@@ -1,2 +1,2 @@
 """Versão do app (usada no executável, no instalador e nas Releases)."""
-__version__ = "0.4.0"
+__version__ = "0.4.1"

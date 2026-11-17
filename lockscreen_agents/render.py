@@ -87,15 +87,15 @@ def _draw_cup(d, hand_x, hand_cy, sub, wiggle):
                     fill=STEAM)
 
 
-def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
+def draw_claude(size=300, step=None, blink=False, tool=True, skin="default"):
     """Clawd, o mascote do Claude Code, em pixel art chapada.
 
     Grade de 14x10 células. O mascote (medido na imagem de referência):
       corpo 8x6, bracinhos 2x2 nas laterais, olhos 1x1 e quatro pernas 1x2.
     `step` alterna braços e pernas (caminhada); `blink` achata os olhos;
     `tool` põe um acessório na mão esquerda (lado esquerdo da imagem) = trabalhando.
-    `skin` escolhe o acessório: "wrench" (chave inglesa), "coffee" (xícara de café, com vapor) ou
-    "santa" (chave inglesa e chapéu de Natal, que aparece também quando ocioso).
+    `skin` escolhe o visual: "default" (nada na mão), "wrench" (chave inglesa), "coffee" (xícara de café,
+    com vapor) ou "santa" (chapéu de Natal, que aparece também quando ocioso).
     """
     coffee = tool and skin == "coffee"
     rows = 11 if coffee else 10  # a xícara com vapor pede uma linha a mais em cima
@@ -113,7 +113,7 @@ def draw_claude(size=300, step=None, blink=False, tool=True, skin="wrench"):
     ay_l, ay_r = ((2, 3) if step % 2 else (3, 2)) if walking else (2, 2)
 
     # acessório (desenhado ANTES do braço, para a mão ficar na frente dele)
-    if tool and not coffee:
+    if tool and skin == "wrench":
         dy = ay_l - 2  # acompanha o braço esquerdo
         box(0, 1 + dy, 0, 1 + dy, STEEL, 0, 0)       # mandíbula esquerda
         box(2, 1 + dy, 2, 1 + dy, STEEL, 0, 0)       # mandíbula direita

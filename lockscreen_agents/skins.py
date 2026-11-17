@@ -1,7 +1,7 @@
 """Visuais (skins) de cada mascote.
 
-Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem a chave inglesa,
-a xícara de café e o chapéu de Natal; o Codex tem o padrão, a xícara de café e o chapéu de Natal; o Cursor
+Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem o padrão (nada na mão),
+a chave inglesa, a xícara de café e o chapéu de Natal; o Codex tem o padrão, a xícara de café e o chapéu de Natal; o Cursor
 tem o padrão e o chapéu de Natal.
 
 Para criar um visual novo:
@@ -15,6 +15,7 @@ A página "Personagens" da janela de configurações mostra todos os visuais dis
 
 SKINS = {
     "claude": [
+        {"id": "default", "available": True},
         {"id": "wrench", "available": True},
         {"id": "coffee", "available": True},
         {"id": "santa", "available": True},

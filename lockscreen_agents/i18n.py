@@ -66,7 +66,7 @@ STRINGS = {
         # personagens (visuais dos mascotes)
         "skins.title": "Personagens",
         "skins.sub": "Escolha o visual de cada mascote. Novos visuais estão a caminho.",
-        "skin.claude.wrench": "Chave inglesa", "skin.claude.coffee": "Xícara de café",
+        "skin.claude.default": "Padrão", "skin.claude.wrench": "Chave inglesa", "skin.claude.coffee": "Xícara de café",
         "skin.claude.santa": "Chapéu de Natal", "skin.codex.santa": "Chapéu de Natal",
         "skin.cursor.santa": "Chapéu de Natal",
         "skin.codex.default": "Padrão", "skin.codex.coffee": "Xícara de café", "skin.cursor.default": "Padrão",
@@ -174,7 +174,7 @@ STRINGS = {
         "how.privacy": "Everything happens on your PC. The app only looks at file modification times, the process list and which window is in front. It never reads the content of anything and does not use the internet.",
         "skins.title": "Characters",
         "skins.sub": "Pick each mascot's look. New looks are on the way.",
-        "skin.claude.wrench": "Wrench", "skin.claude.coffee": "Coffee cup",
+        "skin.claude.default": "Default", "skin.claude.wrench": "Wrench", "skin.claude.coffee": "Coffee cup",
         "skin.claude.santa": "Christmas hat", "skin.codex.santa": "Christmas hat",
         "skin.cursor.santa": "Christmas hat",
         "skin.codex.default": "Default", "skin.codex.coffee": "Coffee cup", "skin.cursor.default": "Default",

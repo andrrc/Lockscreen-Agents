@@ -85,3 +85,17 @@ def test_lock_screen_with_santa_hat_keeps_mascots_in_place():
     assert hat.tobytes() != plain.tobytes()
     # o texto embaixo dos mascotes (nomes e estados) não se mexe
     assert hat.crop((0, 700, 1920, 1080)).tobytes() == plain.crop((0, 700, 1920, 1080)).tobytes()
+
+
+def test_claude_default_has_nothing_in_hand():
+    assert skins.default("claude") == "default"
+    nothing = render.draw_claude(224, tool=True)  # sem skin: o padrão
+    assert nothing.tobytes() == render.draw_claude(224, tool=True, skin="default").tobytes()
+    assert nothing.tobytes() != render.draw_claude(224, tool=True, skin="wrench").tobytes()
+    # trabalhando ou não, o padrão é o mesmo desenho (não há acessório)
+    assert nothing.tobytes() == render.draw_claude(224, tool=False).tobytes()
+
+
+def test_claude_santa_has_no_wrench():
+    hat = render.draw_claude(224, tool=True, skin="santa")
+    assert hat.tobytes() == render.draw_claude(224, tool=False, skin="santa").tobytes()

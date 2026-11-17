@@ -24,6 +24,20 @@ def _run(*args):
     return subprocess.run(args, capture_output=True, text=True, timeout=10).stdout
 
 
+def _applescript_text(value):
+    """Texto seguro para ficar entre aspas dentro de um script AppleScript."""
+    return str(value).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _osascript(script, timeout=10):
+    """Roda o script e devolve a saída. Levanta RuntimeError se o osascript falhar (permissão
+    negada, aplicativo sem resposta...), em vez de devolver um texto vazio que parece sucesso."""
+    done = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=timeout)
+    if done.returncode != 0:
+        raise RuntimeError("osascript: " + done.stderr.strip())
+    return done.stdout
+
+
 class MacPlatform(Platform):
     name = "macos"
 
@@ -94,16 +108,41 @@ class MacPlatform(Platform):
         return False
 
     # ---- ações
-    def _current_wallpaper(self):
-        script = 'tell application "Finder" to get POSIX path of (desktop picture as alias)'
-        return _run("osascript", "-e", script).strip()
+    def _current_wallpapers(self):
+        """Papel de parede de cada área de trabalho (uma por monitor/Space), na ordem do System
+        Events. Se essa leitura não funcionar, cai no Finder, que só informa a principal (uma
+        lista de um item: a troca então vale para todas, como antes). Levanta RuntimeError se
+        nenhuma das duas leituras der um resultado: sem saber o original, não se troca nada."""
+        script = ('tell application "System Events"\n'
+                  'set out to ""\n'
+                  "repeat with d in every desktop\n"
+                  "set p to picture of d\n"
+                  "if class of p is not text then set p to POSIX path of p\n"
+                  "set out to out & p & linefeed\n"
+                  "end repeat\n"
+                  "return out\n"
+                  "end tell")
+        try:
+            paths = [line.strip() for line in _osascript(script).splitlines() if line.strip()]
+        except (RuntimeError, subprocess.TimeoutExpired):
+            paths = []
+        if not paths:
+            script = 'tell application "Finder" to get POSIX path of (desktop picture as alias)'
+            paths = [_osascript(script).strip()]
+        if not all(paths):
+            raise RuntimeError("não foi possível ler o papel de parede atual")
+        return paths
 
-    def _set_wallpaper(self, path):
-        script = ('tell application "System Events" to tell every desktop to set picture to '
-                  f'POSIX file "{path}"')
-        done = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=15)
-        if done.returncode != 0:
-            raise RuntimeError("osascript: " + done.stderr.strip())
+    def _set_wallpapers(self, paths):
+        """Uma imagem para todas as áreas de trabalho (`paths` com um item) ou uma por área."""
+        if len(paths) == 1:
+            script = ('tell application "System Events" to tell every desktop to set picture to '
+                      f'POSIX file "{_applescript_text(paths[0])}"')
+        else:
+            sets = "\n".join(f'set picture of desktop {i} to POSIX file "{_applescript_text(p)}"'
+                             for i, p in enumerate(paths, 1))
+            script = f'tell application "System Events"\n{sets}\nend tell'
+        _osascript(script, timeout=15)
 
     def _is_ours(self, path):
         """True se `path` é uma das imagens que o app gerou (ficam na pasta de dados)."""
@@ -114,13 +153,16 @@ class MacPlatform(Platform):
 
     def set_lock_screen(self, image_path):
         """Troca o papel de parede (a tela de bloqueio do macOS mostra ele). Guarda o original
-        uma vez só, para restore_lock_screen devolver; nunca guarda uma imagem nossa."""
+        (um caminho por linha, um por área de trabalho) uma vez só, para restore_lock_screen
+        devolver; nunca guarda uma imagem nossa. Se não der para ler o atual, levanta erro e não
+        troca nada: trocar sem ter o original guardado perderia o papel de parede do usuário."""
         saved = self.data_dir() / ORIGINAL_WALLPAPER
         if not saved.exists():
-            current = self._current_wallpaper()
-            if current and not self._is_ours(current):
-                saved.write_text(current, encoding="utf-8")
-        self._set_wallpaper(os.path.abspath(image_path))
+            current = self._current_wallpapers()
+            if not any(self._is_ours(p) for p in current):
+                saved.parent.mkdir(parents=True, exist_ok=True)
+                saved.write_text("\n".join(current), encoding="utf-8")
+        self._set_wallpapers([os.path.abspath(image_path)])
 
     def restore_lock_screen(self):
         """Devolve o papel de parede original. True se devolveu; False se não havia o que fazer
@@ -129,15 +171,19 @@ class MacPlatform(Platform):
         saved = self.data_dir() / ORIGINAL_WALLPAPER
         if not saved.exists():
             return False
-        original = saved.read_text(encoding="utf-8").strip()
-        if not original or self._is_ours(original) or not Path(original).exists():
+        originals = [line.strip() for line in saved.read_text(encoding="utf-8").splitlines() if line.strip()]
+        if (not originals or any(self._is_ours(p) for p in originals)
+                or not all(Path(p).exists() for p in originals)):
             saved.unlink()  # registro inútil: tentar de novo nunca vai funcionar
             return False
-        if not self._is_ours(self._current_wallpaper()):
+        current = self._current_wallpapers()
+        if not all(self._is_ours(p) for p in current):
             saved.unlink()  # o usuário escolheu outro papel de parede enquanto isso: respeita
             return False
-        self._set_wallpaper(original)
-        if self._is_ours(self._current_wallpaper()):
+        if len(originals) != len(current):
+            originals = originals[:1]  # monitores conectados/desconectados: devolve o principal em todas
+        self._set_wallpapers(originals)
+        if any(self._is_ours(p) for p in self._current_wallpapers()):
             raise RuntimeError("o papel de parede continua o do app depois de restaurar")
         saved.unlink()
         return True
@@ -170,17 +216,13 @@ class MacPlatform(Platform):
         return LAUNCH_AGENT.exists()
 
     def autostart_enable(self, command, icon=None):
-        args = "".join(f"<string>{a}</string>" for a in command)
         LAUNCH_AGENT.parent.mkdir(parents=True, exist_ok=True)
-        LAUNCH_AGENT.write_text(
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
-            '"http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
-            '<plist version="1.0"><dict>'
-            "<key>Label</key><string>com.lockscreen-agents.app</string>"
-            f"<key>ProgramArguments</key><array>{args}</array>"
-            "<key>RunAtLoad</key><true/>"
-            "</dict></plist>\n", encoding="utf-8")
+        # plistlib escapa &, < e > nos caminhos (montar o XML na mão quebrava com "R&D")
+        LAUNCH_AGENT.write_bytes(plistlib.dumps({
+            "Label": "com.lockscreen-agents.app",
+            "ProgramArguments": [str(a) for a in command],
+            "RunAtLoad": True,
+        }))
         return True
 
     def autostart_disable(self):
@@ -199,7 +241,8 @@ class MacPlatform(Platform):
         root.attributes("-topmost", True)
 
     def show_message(self, title, text):
-        script = f'display dialog "{text}" with title "{title}" buttons {{"OK"}}'
+        script = (f'display dialog "{_applescript_text(text)}" with title "{_applescript_text(title)}" '
+                  'buttons {"OK"}')
         subprocess.run(["osascript", "-e", script], check=False)
 
     def stop_app_processes(self, patterns):

@@ -1,8 +1,8 @@
 """Visuais (skins) de cada mascote.
 
-Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem o padrão (nada na mão),
-a chave inglesa, a xícara de café e o chapéu de Natal; o Codex tem o padrão, a xícara de café e o chapéu de Natal; o Cursor
-tem o padrão e o chapéu de Natal.
+Cada ferramenta tem uma lista de visuais; o primeiro é o padrão. Hoje o Claude Code tem o padrão (nada na
+mão), a chave inglesa, a xícara de café e o chapéu de Natal; o Codex tem o padrão, a xícara de café e o chapéu
+de Natal; o Cursor tem o padrão e o chapéu de Natal.
 
 Para criar um visual novo:
 

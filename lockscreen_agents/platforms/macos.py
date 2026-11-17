@@ -1,8 +1,8 @@
-"""Implementação para macOS (RASCUNHO, ainda não testado em um Mac).
+"""Implementação para macOS (funciona pelo código-fonte; ainda sem empacotamento em .app).
 
-Este arquivo é o ponto de partida do port. Tudo que está marcado com TODO(macos) precisa ser
-verificado em um Mac de verdade; o que vem sem marca é a ideia mais provável, mas também não foi
-executado. Leia docs/MACOS.md antes de mexer.
+Tudo que está marcado com TODO(macos) ainda precisa ser verificado em um Mac de verdade. A coluna
+Status de docs/MACOS.md diz o que já foi executado lá e o que só tem teste com saída simulada.
+Leia docs/MACOS.md antes de mexer.
 
 Dependências extras (só macOS): nenhuma obrigatória. Se precisar de PyObjC, acrescente em
 requirements-macos.txt.

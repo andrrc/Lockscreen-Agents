@@ -1,97 +1,109 @@
-# Guia do port para macOS
+# Lockscreen Agents no macOS
 
-Objetivo: rodar o Lockscreen Agents em um Mac, com os mesmos mascotes e estados do Windows.
-Este guia é para quem vai fazer o port. Leia antes [ARCHITECTURE.md](ARCHITECTURE.md) e
-[CONTRIBUTING.md](../CONTRIBUTING.md).
+O app roda em um Mac **pelo código-fonte** (ainda não há `.app` nem instalador) com os mesmos mascotes e
+estados do Windows. Este documento diz o que já funciona, o que falta e como testar. Para quem vai
+mexer no código, leia antes [ARCHITECTURE.md](ARCHITECTURE.md) e [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Onde estamos
 
-O app foi escrito no Windows, e **nada foi executado em um Mac ainda**. O trabalho de preparação:
+- O port foi feito por um colaborador (PRs #1 e #2) e está na `main`. Tudo que depende do sistema
+  operacional fica em `lockscreen_agents/platforms/macos.py`; o resto do app (detector, configurações,
+  desenho dos mascotes, textos) é o mesmo do Windows.
+- O CI roda `ruff` e `pytest` em `macos-latest`, mas os testes de macOS usam um papel de parede falso e
+  saídas simuladas de `pmset`. Eles garantem a lógica, **não** o comportamento do `osascript`, do `ioreg`
+  ou do Tk num Mac de verdade. Por isso a coluna Status abaixo diz o que foi realmente executado.
+- Mudanças da versão 0.4.2: o app não troca mais o papel de parede se não conseguir ler o atual; guarda e
+  devolve o papel de parede de **cada monitor**; o plist do início automático é gerado com `plistlib`
+  (caminhos com `&` quebravam); textos e caminhos colocados em AppleScript são escapados.
 
-- Tudo que depende do sistema operacional foi isolado em `lockscreen_agents/platforms/`.
-- `platforms/macos.py` é um **rascunho**: as chamadas mais prováveis estão escritas, mas nenhuma foi
-  testada. Cada ponto incerto está marcado com `TODO(macos)`.
-- O CI (`.github/workflows/ci.yml`) já roda os testes em `macos-latest`. O resto do app (detector,
-  configurações, desenho dos mascotes, textos) não depende de sistema e deve funcionar como está.
-
-## Primeiros passos
+## Como testar
 
 ```bash
-git checkout -b macos
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest                       # deve passar
-python app.py --settings     # a janela de configurações abre?
-python app.py --saver /s --seconds 5
-python app.py                # bandeja
+pytest                                  # deve passar
+python app.py --settings                # a janela de configurações abre?
+python app.py --saver /s --seconds 5    # o protetor cobre a tela e fecha com tecla ou mouse?
+python app.py                           # bandeja (barra de menus)
 ```
 
-Vá anotando o que quebra. A ordem sugerida abaixo vai do mais fácil ao mais difícil.
+Vá anotando o que quebra e abra uma issue ou um pull request pequeno (um item por PR facilita a revisão;
+o Windows continua protegido pelo CI).
 
 ## Checklist (cada item é um método de `Platform`)
 
-| # | Método | Ideia para o macOS | Status |
+| # | Método | Como é no macOS | Status |
 | --- | --- | --- | --- |
-| 1 | `data_dir` | `~/Library/Application Support/LockscreenAgents` | escrito |
+| 1 | `data_dir` | `~/Library/Application Support/LockscreenAgents` | pronto |
 | 2 | `running_processes` | `ps -axo comm=` (nomes em minúsculas) | testado (Claude) |
-| 3 | `PROCESS_NAMES`, `FOCUS_MATCH` | conferir os nomes reais: Claude, Codex e Cursor | **verificar** |
+| 3 | `PROCESS_NAMES`, `FOCUS_MATCH` | `claude`, `codex`, `cursor` e os `.app` correspondentes | Claude conferido; **verificar Codex e Cursor** |
 | 4 | `idle_seconds` | `ioreg -c IOHIDSystem` (HIDIdleTime, em nanossegundos) | testado |
 | 5 | `foreground_app_path` | `osascript` com System Events (pede permissão de Automação) | testado |
-| 6 | `single_instance` | arquivo de trava com `fcntl.flock` | rascunho |
-| 7 | `system_language`, `open_path` | `defaults read -g AppleLanguages`, `open` | rascunho |
-| 8 | `autostart_*` | LaunchAgent em `~/Library/LaunchAgents` | rascunho |
-| 9 | `ui_scale`, `style_window`, `monitors` | Tk no macOS: conferir tela Retina, barra de título, várias telas | **verificar** |
-| 10 | `session_locked`, `lock_session` | Quartz (`CGSSessionScreenIsLocked`); bloquear a tela | **TODO** |
-| 11 | `set_lock_screen`, `restore_lock_screen`, `has_pending_restore` | troca o papel de parede (opt-in `lock_wallpaper`); o original fica em `original_wallpaper.txt` e volta ao desbloquear, ao pausar, ao sair, no menu da bandeja, na próxima inicialização (se o app caiu) ou com `python app.py --restore-wallpaper` | testado (osascript) |
-| 12 | Empacotamento | `.app` com PyInstaller ou py2app, assinatura e notarização | **TODO** |
+| 6 | `single_instance` | arquivo de trava com `fcntl.flock` | escrito, não conferido |
+| 7 | `system_language`, `open_path` | `defaults read -g AppleLanguages`, `open` | escrito, não conferido |
+| 8 | `autostart_*` | LaunchAgent em `~/Library/LaunchAgents`, gerado com `plistlib` | escrito; **conferir o início no login** |
+| 9 | `ui_scale`, `monitors`, `make_fullscreen` | Tk com `-fullscreen`; escala 1.0 | **verificar** Retina e barra de título; cobre só o monitor principal |
+| 10 | `session_locked` | `ioreg -n Root -d1 -a` (`CGSSessionScreenIsLocked`); sem sessão no console conta como bloqueado | escrito, em uso pelo app |
+| 10 | `lock_session` | `pmset displaysleepnow` | **limitado**: só apaga a tela, não bloqueia de fato (veja abaixo) |
+| 11 | `set_lock_screen`, `restore_lock_screen`, `has_pending_restore` | troca o papel de parede (opção "Mostrar na tela de bloqueio"); os originais ficam em `original_wallpaper.txt`, um por monitor | testado com um monitor; **leitura por monitor (System Events) ainda não conferida num Mac** |
+| 12 | `display_sleep_blocked` | `pmset -g assertions` (`PreventUserIdleDisplaySleep`) para não abrir o protetor durante vídeo | lógica testada com saída simulada; **conferir com vídeo de verdade** |
+| 13 | Empacotamento | `.app` com PyInstaller ou py2app, assinatura e notarização | **não feito** |
 
-Ao terminar um item, atualize a coluna Status e abra um pull request pequeno. Um item por PR facilita
-a revisão (e o Windows continua protegido pelo CI).
+Ao terminar um item, atualize a coluna Status.
 
-## O problema da tela de bloqueio (item 11)
+## A tela de bloqueio
 
-No Windows existe uma API (`LockScreen.SetImageFileAsync`) que troca só a imagem da tela de bloqueio.
-No macOS **não existe API pública equivalente**: a tela de bloqueio mostra o papel de parede da área de
-trabalho. Opções a avaliar, de preferência conversando em uma issue antes:
+No Windows existe uma API (`LockScreen.SetImageFileAsync`) que troca só a imagem da tela de bloqueio. No
+macOS **não existe API pública equivalente**: a tela de bloqueio mostra o papel de parede da área de
+trabalho. O que o app faz hoje:
 
-1. **Trocar o papel de parede** com a imagem gerada (`osascript` ou NSWorkspace
-   `setDesktopImageURL`). É simples e funciona, mas altera o papel de parede do usuário o tempo todo.
-   Se for por aqui, precisa de uma opção clara nas configurações e de restaurar o original ao sair.
-2. **Só o protetor de tela** no macOS (sem alterar a lock screen). O protetor em Tkinter já existe e
-   é disparado pela bandeja quando o Mac fica parado; seria o recurso principal do port.
-3. **Protetor nativo (`.saver`)**, que aparece nas configurações do macOS. Mais integrado, mas exige
-   Objective-C/Swift e é outro projeto.
+- **Papel de parede, opcional.** Com **Configurações → Geral → Mostrar na tela de bloqueio** ligado, o
+  app troca o papel de parede enquanto o Mac está bloqueado e devolve o original ao desbloquear, ao
+  pausar, ao sair, pelo menu da bandeja ("Restaurar papel de parede original"), na próxima inicialização
+  (se o app caiu) ou com `python app.py --restore-wallpaper`. Se o usuário trocar o papel de parede nesse
+  meio-tempo, o app respeita a escolha e não restaura. Se não conseguir ler o papel de parede atual, não
+  troca nada.
+- **Protetor de tela.** O protetor em Tkinter funciona igual ao do Windows e é aberto pela bandeja quando
+  o Mac fica parado. Não abre durante vídeo, chamada ou apresentação.
+- **Protetor nativo (`.saver`)** continua sendo uma opção futura: ele apareceria nas configurações do
+  macOS, mas exige Objective-C/Swift e é outro projeto.
 
-Qualquer uma delas cabe no contrato: se escolher a 2, `set_lock_screen` pode ser um método que não
-faz nada, e o app precisa continuar funcionando (hoje ele loga o erro e tenta de novo a cada ciclo,
-então vale tratar isso em `tray.apply`).
+### Bloquear o Mac ao fechar o protetor
+
+A opção "bloquear o PC ao fechar" chama `pmset displaysleepnow`, que só apaga a tela. O Mac pede senha ao
+acordar apenas se **Ajustes do Sistema → Tela de bloqueio → Exigir senha** estiver em "imediatamente".
+Bloquear de fato (por exemplo com `CGSession -suspend`, que some nas versões novas, ou via Quartz) ainda
+precisa ser avaliado em um Mac.
 
 ## Pontos de atenção
 
-- **Permissões do macOS.** Ler a janela em foco com `osascript` pode exigir Automação/Acessibilidade.
-  O app deve funcionar (só sem o sinal de foco) se o usuário negar; veja `detector.get_states`, que já
-  ignora falhas dessa leitura.
-- **Tkinter e a bandeja.** No macOS, `pystray` e o Tkinter querem a thread principal. Por isso a janela
-  de configurações e o protetor são processos separados (`launcher.command`). Se a bandeja der problema,
+- **Permissões do macOS.** Ler a janela em foco e trocar o papel de parede passam pelo System Events e pelo
+  Finder, que pedem **Automação**. Se o usuário negar, o app continua (só sem o sinal de foco); veja
+  `detector.get_states`, que ignora falhas dessa leitura, e `tray.worker`, que registra o erro e tenta de
+  novo.
+- **Tkinter e a bandeja.** No macOS, `pystray` e o Tkinter querem a thread principal. Por isso a janela de
+  configurações e o protetor são processos separados (`launcher.command`). Se a bandeja der problema,
   investigue o backend do `pystray` (`pystray._darwin`) e o `LSUIElement` (app sem ícone no Dock).
-- **Tela cheia.** O protetor usa `overrideredirect` + `-topmost` do Tk; no macOS o comportamento é
-  diferente (menu e Dock podem continuar visíveis). Pode precisar de ajuste.
+- **Tela cheia.** O protetor usa `-fullscreen` e `-topmost` do Tk, que cobre só o monitor principal.
+  `monitors()` ainda é o padrão da base.
 - **Onde as ferramentas gravam.** O detector olha `~/.claude/projects`, `~/.codex/sessions` e `~/.cursor`.
-  Confirme se esses caminhos são os mesmos no macOS; se não forem, ajuste em `detector.py` (e deixe
-  isso por plataforma, não com `if sys.platform`).
-- **Fontes.** `render.py` procura `segoeui.ttf` e cai em `arial.ttf`. No macOS isso provavelmente cai na
-  fonte padrão do Pillow; vale escolher uma fonte do sistema por plataforma.
-- **A janela de configurações** foi desenhada em pixels e testada só no Windows. Espere ajustes de
+  Confirme se são os mesmos no macOS; se não forem, deixe isso por plataforma, não com `if sys.platform`.
+- **Fontes.** `render.py` usa `FONTS` da plataforma (SF e Helvetica no macOS) e cai na fonte padrão do
+  Pillow se não achar.
+- **A janela de configurações** foi desenhada em pixels e testada sobretudo no Windows. Espere ajustes de
   escala, fontes e da barra de título.
 - **Empacotamento.** O instalador atual (`packaging/windows/`) é só do Windows. Para o Mac, crie
-  `packaging/macos/` e um job no `release.yml` em `macos-latest`. Sem assinatura/notarização da Apple o
+  `packaging/macos/` e um job no `release.yml` em `macos-latest`. Sem assinatura e notarização da Apple o
   Gatekeeper vai avisar, como o SmartScreen faz no Windows.
 
 ## Como saber que está pronto
 
-- `pytest` e `ruff check` passam no CI em macOS e Windows.
-- Os três estados (em uso, ocioso, fechado) aparecem certos para as ferramentas instaladas no Mac.
-- O protetor abre quando o Mac fica parado e fecha com tecla ou mouse.
-- A bandeja (barra de menus) mostra o ícone e abre as configurações.
-- Início automático liga e desliga pela janela.
-- `README.md` diz o que funciona no macOS e o que não funciona.
+- [x] `pytest` e `ruff check` passam no CI em macOS e Windows.
+- [ ] Os três estados (em uso, ocioso, fechado) aparecem certos para as ferramentas instaladas no Mac
+  (Claude conferido; falta Codex e Cursor).
+- [ ] O protetor abre quando o Mac fica parado e fecha com tecla ou mouse, em Retina e com vários monitores.
+- [ ] A bandeja (barra de menus) mostra o ícone e abre as configurações.
+- [ ] Início automático liga e desliga pela janela e o app abre no login.
+- [ ] A troca do papel de parede funciona e restaura com vários monitores.
+- [ ] Existe um `.app` (ou outro jeito de instalar) e a release dele.
+- [x] `README.md` diz o que funciona no macOS e o que não funciona.

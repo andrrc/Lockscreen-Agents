@@ -21,7 +21,7 @@ lockscreen_agents/          o app
   platforms/                TUDO que depende do sistema operacional
     base.py                 o contrato (classe Platform)
     windows.py              implementação para Windows
-    macos.py                rascunho para macOS
+    macos.py                macOS (funciona pelo código-fonte; veja MACOS.md)
 packaging/windows/          build_exe.py (PyInstaller), installer.iss (Inno Setup), install.py
 tools/                      gera as imagens do README
 tests/                      pytest (com um sistema operacional falso)

@@ -49,7 +49,7 @@ Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Em resumo:
 - `packaging/windows/` tem o executável e o instalador do Windows.
 - `docs/` tem a documentação e as imagens do README. `tools/` gera essas imagens.
 
-Quer portar para o macOS? Comece por [docs/MACOS.md](docs/MACOS.md).
+Tem um Mac? Testar e fechar o que falta no macOS ajuda muito: veja [docs/MACOS.md](docs/MACOS.md).
 
 ## Regras do projeto
 

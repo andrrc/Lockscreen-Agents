@@ -965,15 +965,19 @@ class SettingsApp:
     # -- personagens (visuais dos mascotes)
     def page_skins(self):
         self.header("skins.title", "skins.sub")
-        h, gap, cw, chh = 128, 12, 196, 66
-        for i, key in enumerate(settings.TOOLS):
-            y = 120 + i * (h + gap)
+        gap, cw, chh, rgap = 12, 184, 66, 10
+        cols = max(1, (CW - 44 + gap) // (cw + gap))  # quantos visuais cabem numa linha; o resto desce
+        y = 120
+        for key in settings.TOOLS:
+            options = [s_ for s_ in skins.SKINS[key] if s_["available"]]
+            rows = -(-len(options) // cols)
+            h = 48 + rows * chh + (rows - 1) * rgap + 14
             g = self.new_group()
             self.hover_cards.append(g.card(CX, y, CW, h))
             g.text(CX + 22, y + 18, t("tool." + key), self.f["label"], TEXT)
             current = self.cfg["skins"][key]
-            for j, sk in enumerate(s_ for s_ in skins.SKINS[key] if s_["available"]):
-                cx, cy = CX + 22 + j * (cw + 12), y + 48
+            for j, sk in enumerate(options):
+                cx, cy = CX + 22 + (j % cols) * (cw + gap), y + 48 + (j // cols) * (chh + rgap)
                 chip = g.card(cx, cy, cw, chh)
                 self.hover_cards.append(chip)
                 chip.active = sk["id"] == current
@@ -983,6 +987,7 @@ class SettingsApp:
                 g.text(cx + 14 + 68, cy + chh / 2, t(f"skin.{key}.{sk['id']}"), self.f["small"],
                        TEXT if chip.active else MUTED, anchor="w", width=cw - 14 - 68 - 8)
                 g.target(cx, cy, cw, chh, SkinHit(self, key, sk["id"]))
+            y += h + gap
 
     # -- ferramentas
     def page_tools(self):

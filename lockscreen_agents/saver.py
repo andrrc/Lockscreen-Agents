@@ -1,4 +1,4 @@
-"""Screensaver animado (.scr): mascotes do Claude Code, Codex e Cursor.
+"""Screensaver animado (.scr): mascotes do Claude Code, Codex, Cursor e Gemini CLI.
 
 Quem está ativo anda (colorido); quem está ocioso fica parado em cinza.
 Argumentos do Windows: /s (exibir), /c (configurar), /p <hwnd> (miniatura).
@@ -16,7 +16,7 @@ from PIL import ImageTk
 from . import platforms, settings
 from .detector import get_states
 from .i18n import t
-from .render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor
+from .render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor, draw_gemini
 
 FPS = 30
 FRAME_MS = 1000 // FPS
@@ -34,6 +34,9 @@ SPECS = [
      True),
     ("cursor", "Cursor",
      lambda size, step, blink: draw_cursor(size, skin=settings.get()["skins"]["cursor"]), False),
+    ("gemini", "Gemini CLI",
+     lambda size, step, blink: draw_gemini(size, step=step, blink=blink, skin=settings.get()["skins"]["gemini"]),
+     True),
 ]
 
 
@@ -147,11 +150,12 @@ class Scene:
         self.canvas = canvas
         self.x0, self.y0 = left - origin[0], top - origin[1]
         self.w, self.h = right - left, bottom - top
-        self.size = int(min(self.w / 3 * 0.6, self.h * 0.42))
-        self.ground = self.y0 + int(self.h * 0.60)
-        canvas.create_line(self.x0, self.ground + 4, self.x0 + self.w, self.ground + 4, fill="#1d1d22")
         tools = settings.get()["tools"]
         specs = [sp for sp in SPECS if tools.get(sp[0], True)]
+        lanes = max(3, len(specs))  # com quatro mascotes cada um fica menor, para caber na faixa
+        self.size = int(min(self.w / lanes * 0.6, self.h * 0.42))
+        self.ground = self.y0 + int(self.h * 0.60)
+        canvas.create_line(self.x0, self.ground + 4, self.x0 + self.w, self.ground + 4, fill="#1d1d22")
         self.actors = [Actor(self, i, len(specs), spec) for i, spec in enumerate(specs)]
 
     def apply_status(self, status):
@@ -242,7 +246,7 @@ def main():
         platforms.current().show_message(
             "Lockscreen Agents",
             "Lockscreen Agents: sem opções de configuração.\n"
-            "Quem está ativo (Claude Code, Codex, Cursor) anda; os ociosos ficam parados em cinza.")
+            "Quem está ativo (Claude Code, Codex, Cursor, Gemini CLI) anda; os ociosos ficam parados em cinza.")
         return
     run_saver(seconds)
 

@@ -13,8 +13,10 @@ from lockscreen_agents.platforms.base import Platform  # noqa: E402
 class FakePlatform(Platform):
     """Sistema falso: os testes controlam processos, janela em foco e tempo parado."""
     name = "fake"
-    PROCESS_NAMES = {"claude": {"claude.exe"}, "codex": {"codex.exe"}, "cursor": {"cursor.exe"}}
-    FOCUS_MATCH = {"claude": ({"claude.exe"}, ()), "codex": ({"codex.exe"}, ()), "cursor": ({"cursor.exe"}, ())}
+    PROCESS_NAMES = {"claude": {"claude.exe"}, "codex": {"codex.exe"}, "cursor": {"cursor.exe"},
+                     "gemini": {"gemini.exe"}}
+    FOCUS_MATCH = {"claude": ({"claude.exe"}, ()), "codex": ({"codex.exe"}, ()), "cursor": ({"cursor.exe"}, ()),
+                   "gemini": ({"gemini.exe"}, ())}
 
     def __init__(self, data_dir):
         self._dir = Path(data_dir)
@@ -64,6 +66,6 @@ def clean_detector(monkeypatch):
     detector._last_seen.clear()
     detector._last_fg.clear()
     detector.LAST.clear()
-    activity = {"claude": 0.0, "codex": 0.0, "cursor": 0.0}
+    activity = {"claude": 0.0, "codex": 0.0, "cursor": 0.0, "gemini": 0.0}
     monkeypatch.setattr(detector, "SOURCES", {k: (lambda k=k: activity[k]) for k in activity})
     return activity

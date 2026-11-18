@@ -31,11 +31,15 @@ class _LASTINPUTINFO(ctypes.Structure):
 
 class WindowsPlatform(Platform):
     name = "windows"
-    PROCESS_NAMES = {"claude": {"claude.exe"}, "codex": {"codex.exe"}, "cursor": {"cursor.exe"}}
+    # O Gemini CLI roda no Node (node.exe): só um binário próprio "gemini.exe" é reconhecido aqui;
+    # o detector usa a atividade nos arquivos para saber se ele está aberto (FILE_OPEN_HOLD).
+    PROCESS_NAMES = {"claude": {"claude.exe"}, "codex": {"codex.exe"}, "cursor": {"cursor.exe"},
+                     "gemini": {"gemini.exe"}}
     FOCUS_MATCH = {
         "claude": ({"claude.exe"}, ()),
         "codex": ({"codex.exe"}, ("openai.codex",)),
         "cursor": ({"cursor.exe"}, ()),
+        "gemini": ({"gemini.exe"}, ()),
     }
 
     def __init__(self):

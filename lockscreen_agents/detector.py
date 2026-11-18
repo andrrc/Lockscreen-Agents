@@ -1,4 +1,4 @@
-"""Detecta se Claude Code, Codex e Cursor estão ativos, olhando só a data de
+"""Detecta se Claude Code, Codex, Cursor e Gemini CLI estão ativos, olhando só a data de
 modificação dos arquivos locais deles (não lê conteúdo, não precisa de login)."""
 import os
 import time
@@ -67,11 +67,27 @@ def cursor_last_activity():
     return best
 
 
+def gemini_last_activity():
+    # ~/.gemini/tmp/<projeto>/chats/session-*.json (ou .jsonl nas versões novas) e
+    # ~/.gemini/tmp/<projeto>/logs.json (histórico do que você digitou).
+    best = 0.0
+    for proj in _subdirs(HOME / ".gemini" / "tmp"):
+        chats = [Path(proj) / "chats"]
+        best = max(best, _newest_in(chats, ".json"), _newest_in(chats, ".jsonl"))
+        best = max(best, _mtime(Path(proj) / "logs.json"))
+    return best
+
+
 SOURCES = {
     "claude": claude_last_activity,
     "codex": codex_last_activity,
     "cursor": cursor_last_activity,
+    "gemini": gemini_last_activity,
 }
+
+# O Gemini CLI roda dentro do Node (node.exe / node), então o processo não dá para separar de
+# qualquer outro programa em Node. No lugar dele, arquivos mexidos há pouco contam como "aberto".
+FILE_OPEN_HOLD = {"gemini": 1800}
 
 
 def get_status(window=ACTIVE_WINDOW):
@@ -113,7 +129,7 @@ def foreground_path():
 
 
 def tool_of_path(path):
-    """Qual ferramenta (claude/codex/cursor) é dona desse executável, ou None."""
+    """Qual ferramenta (claude/codex/cursor/gemini) é dona desse executável, ou None."""
     exe = os.path.basename(path)
     for name, (exes, parts) in _plat().FOCUS_MATCH.items():
         if exe in exes or any(p in path for p in parts):
@@ -159,6 +175,9 @@ def get_states(window=None):
             state = "working"
         else:
             if running is not None and _plat().PROCESS_NAMES[name] & running:
+                _last_seen[name] = now
+            hold = FILE_OPEN_HOLD.get(name)
+            if hold and age.get(name) is not None and age[name] <= hold:
                 _last_seen[name] = now
             seen = _last_seen.get(name)
             if seen is None and running is None:

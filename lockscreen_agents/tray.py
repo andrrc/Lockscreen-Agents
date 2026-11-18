@@ -1,4 +1,4 @@
-"""Ícone na bandeja: monitora Claude Code, Codex e Cursor, atualiza a lock screen
+"""Ícone na bandeja: monitora Claude Code, Codex, Cursor e Gemini CLI, atualiza a lock screen
 e abre o protetor de tela animado quando o PC fica ocioso."""
 import json
 import os

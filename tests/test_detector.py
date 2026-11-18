@@ -25,7 +25,7 @@ def test_old_activity_is_only_open(fake_platform, clean_detector):
 
 
 def test_closed_without_process(fake_platform, clean_detector):
-    assert detector.get_states() == {"claude": "closed", "codex": "closed", "cursor": "closed"}
+    assert detector.get_states() == {"claude": "closed", "codex": "closed", "cursor": "closed", "gemini": "closed"}
 
 
 def test_close_grace_keeps_open_for_a_while(fake_platform, clean_detector):
@@ -72,3 +72,35 @@ def test_signals_are_recorded(fake_platform, clean_detector):
     sig = detector.LAST["claude"]
     assert sig["running"] is True and 5 < sig["file_age"] < 30 and sig["state"] == "working"
     assert detector.LAST["codex"]["running"] is False
+
+
+def test_gemini_activity_reads_chats_and_logs(tmp_path, monkeypatch):
+    monkeypatch.setattr(detector, "HOME", tmp_path)
+    assert detector.gemini_last_activity() == 0.0
+    chats = tmp_path / ".gemini" / "tmp" / "abc123" / "chats"
+    chats.mkdir(parents=True)
+    session = chats / "session-2026-11-18T10-00-abc.json"
+    session.write_text("{}", encoding="utf-8")
+    os.utime(session, (1000, 1000))
+    assert detector.gemini_last_activity() == 1000
+    newer = chats / "session-novo.jsonl"  # formato das versões novas
+    newer.write_text("", encoding="utf-8")
+    os.utime(newer, (2000, 2000))
+    assert detector.gemini_last_activity() == 2000
+    logs = tmp_path / ".gemini" / "tmp" / "abc123" / "logs.json"
+    logs.write_text("[]", encoding="utf-8")
+    os.utime(logs, (3000, 3000))
+    assert detector.gemini_last_activity() == 3000
+
+
+def test_gemini_stays_open_after_recent_files_without_process(fake_platform, clean_detector):
+    # o Gemini CLI roda no Node: sem processo próprio, os arquivos recentes dizem que está aberto
+    clean_detector["gemini"] = time.time() - 600
+    assert detector.get_states()["gemini"] == "open"
+    clean_detector["gemini"] = time.time() - 5
+    assert detector.get_states()["gemini"] == "working"
+
+
+def test_gemini_closes_when_files_are_old(fake_platform, clean_detector):
+    clean_detector["gemini"] = time.time() - 3 * 3600
+    assert detector.get_states()["gemini"] == "closed"

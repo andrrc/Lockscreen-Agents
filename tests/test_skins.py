@@ -27,7 +27,8 @@ def test_settings_reject_unknown_skin():
 
 def test_update_merges_skins():
     settings.update(skins={"claude": "coffee"})
-    assert settings.load()["skins"] == {"claude": "coffee", "codex": "default", "cursor": "default"}
+    assert settings.load()["skins"] == {"claude": "coffee", "codex": "default", "cursor": "default",
+                                        "gemini": "default"}
 
 
 def test_coffee_cup_changes_the_drawing():
@@ -65,6 +66,7 @@ def test_santa_hat_changes_every_mascot_even_when_idle():
         "claude": lambda skin: render.draw_claude(224, tool=False, skin=skin),
         "codex": lambda skin: render.draw_codex(225, tool=False, skin=skin),
         "cursor": lambda skin: render.draw_cursor(224, active=False, skin=skin),
+        "gemini": lambda skin: render.draw_gemini(225, tool=False, skin=skin),
     }
     for tool, make in makers.items():
         hat = make("santa")
@@ -99,3 +101,10 @@ def test_claude_default_has_nothing_in_hand():
 def test_claude_santa_has_no_wrench():
     hat = render.draw_claude(224, tool=True, skin="santa")
     assert hat.tobytes() == render.draw_claude(224, tool=False, skin="santa").tobytes()
+
+
+def test_gemini_walks_blinks_and_sparkles():
+    rest = render.draw_gemini(225, tool=False)
+    assert rest.tobytes() != render.draw_gemini(225, step=0, tool=False).tobytes()
+    assert rest.tobytes() != render.draw_gemini(225, tool=False, blink=True).tobytes()
+    assert rest.tobytes() != render.draw_gemini(225, tool=True).tobytes()  # faísca = trabalhando

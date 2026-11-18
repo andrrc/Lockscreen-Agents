@@ -6,7 +6,7 @@ STRINGS = {
     "pt": {
         # estados dos mascotes
         "state.working": "em uso", "state.open": "ocioso", "state.closed": "fechado",
-        "tool.claude": "Claude Code", "tool.codex": "Codex", "tool.cursor": "Cursor",
+        "tool.claude": "Claude Code", "tool.codex": "Codex", "tool.cursor": "Cursor", "tool.gemini": "Gemini CLI",
         # bandeja
         "tray.waiting": "Aguardando...",
         "tray.settings": "Configurações…",
@@ -29,7 +29,7 @@ STRINGS = {
         "nav.saver": "Protetor de tela",
         "nav.general": "Geral",
         "ui.saved": "Salvo",
-        "ui.footer": "Projeto não oficial, sem vínculo com Anthropic, OpenAI ou Anysphere.",
+        "ui.footer": "Projeto não oficial, sem vínculo com Anthropic, OpenAI, Anysphere ou Google.",
         # visão geral
         "ov.title": "Visão geral",
         "ov.sub": "Veja o que está acontecendo agora, ao vivo.",
@@ -69,6 +69,7 @@ STRINGS = {
         "skin.claude.default": "Padrão", "skin.claude.wrench": "Chave inglesa", "skin.claude.coffee": "Xícara de café",
         "skin.claude.santa": "Chapéu de Natal", "skin.codex.santa": "Chapéu de Natal",
         "skin.cursor.santa": "Chapéu de Natal",
+        "skin.gemini.default": "Padrão", "skin.gemini.santa": "Chapéu de Natal",
         "skin.codex.default": "Padrão", "skin.codex.coffee": "Xícara de café", "skin.cursor.default": "Padrão",
         # ferramentas
         "tools.title": "Ferramentas",
@@ -76,6 +77,7 @@ STRINGS = {
         "tools.claude.desc": "Terminal e app desktop. Observa a pasta .claude do seu usuário.",
         "tools.codex.desc": "App e CLI da OpenAI. Observa a pasta .codex do seu usuário.",
         "tools.cursor.desc": "Editor com agente de IA. Observa a pasta .cursor do seu usuário.",
+        "tools.gemini.desc": "CLI do Google. Observa a pasta .gemini do seu usuário.",
         "tools.min": "Pelo menos uma ferramenta precisa ficar ligada.",
         # detecção
         "det.title": "Detecção",
@@ -122,7 +124,7 @@ STRINGS = {
     },
     "en": {
         "state.working": "in use", "state.open": "idle", "state.closed": "closed",
-        "tool.claude": "Claude Code", "tool.codex": "Codex", "tool.cursor": "Cursor",
+        "tool.claude": "Claude Code", "tool.codex": "Codex", "tool.cursor": "Cursor", "tool.gemini": "Gemini CLI",
         "tray.waiting": "Waiting...",
         "tray.settings": "Settings…",
         "tray.pause": "Pause",
@@ -143,7 +145,7 @@ STRINGS = {
         "nav.saver": "Screensaver",
         "nav.general": "General",
         "ui.saved": "Saved",
-        "ui.footer": "Unofficial project, not affiliated with Anthropic, OpenAI or Anysphere.",
+        "ui.footer": "Unofficial project, not affiliated with Anthropic, OpenAI, Anysphere or Google.",
         "ov.title": "Overview",
         "ov.sub": "See what is happening right now, live.",
         "ov.preview": "Lock screen preview",
@@ -177,12 +179,14 @@ STRINGS = {
         "skin.claude.default": "Default", "skin.claude.wrench": "Wrench", "skin.claude.coffee": "Coffee cup",
         "skin.claude.santa": "Christmas hat", "skin.codex.santa": "Christmas hat",
         "skin.cursor.santa": "Christmas hat",
+        "skin.gemini.default": "Default", "skin.gemini.santa": "Christmas hat",
         "skin.codex.default": "Default", "skin.codex.coffee": "Coffee cup", "skin.cursor.default": "Default",
         "tools.title": "Tools",
         "tools.sub": "Choose which assistants show up as mascots.",
         "tools.claude.desc": "Terminal and desktop app. Watches your user's .claude folder.",
         "tools.codex.desc": "OpenAI app and CLI. Watches your user's .codex folder.",
         "tools.cursor.desc": "Editor with an AI agent. Watches your user's .cursor folder.",
+        "tools.gemini.desc": "Google's CLI. Watches your user's .gemini folder.",
         "tools.min": "At least one tool has to stay on.",
         "det.title": "Detection",
         "det.sub": "Tune when a tool counts as in use, idle or closed.",

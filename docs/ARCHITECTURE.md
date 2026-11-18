@@ -84,14 +84,16 @@ As regras (em uso, ocioso, fechado) e seus tempos ficam em `detector.get_states`
 **Um visual novo para um mascote** (como a xícara de café do Claude)
 
 1. Em `skins.py`, acrescente `{"id": "meu-visual", "available": True}` na lista da ferramenta.
-2. Desenhe-o em `render.py`: `draw_claude`, `draw_codex` e `draw_cursor` têm o parâmetro `skin` (grade de células, em pixel-art). Acessórios na mão (xícara) só aparecem enquanto a ferramenta está em uso; roupas, como o chapéu de Natal (`_with_pixel_hat`), aparecem sempre.
+2. Desenhe-o em `render.py`: `draw_claude`, `draw_codex`, `draw_cursor` e `draw_gemini` têm o parâmetro `skin` (grade de células, em pixel-art). Acessórios na mão (xícara) só aparecem enquanto a ferramenta está em uso; roupas, como o chapéu de Natal (`_with_pixel_hat`), aparecem sempre.
 3. Crie o nome `skin.<ferramenta>.<id>` em português e inglês em `i18n.py`; um teste confere.
 4. Ele aparece sozinho na página **Personagens** e vale na lock screen e no protetor.
 
-**Uma ferramenta nova (além de Claude Code, Codex e Cursor)**
+**Uma ferramenta nova (além de Claude Code, Codex, Cursor e Gemini CLI)**
 
 1. `settings.TOOLS` e a função de atividade em `detector.SOURCES`.
-2. Nomes de processo e janela em cada plataforma (`PROCESS_NAMES`, `FOCUS_MATCH`).
+2. Nomes de processo e janela em cada plataforma (`PROCESS_NAMES`, `FOCUS_MATCH`). Se o processo não
+   tiver nome próprio (o Gemini CLI roda no Node), use `detector.FILE_OPEN_HOLD`: arquivos mexidos há
+   pouco contam como "aberto".
 3. Mascote em `render.py` (`draw_*`, a cor em `ACCENT` e `makers` dentro de `render`), `saver.SPECS`
    e `settings_ui.mascot`.
 4. Textos `tool.<id>` e `tools.<id>.desc` em `i18n.py`.

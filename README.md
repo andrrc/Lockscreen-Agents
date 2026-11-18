@@ -4,7 +4,7 @@
 
 **Português** · [English](#english)
 
-Mascotes na tela de bloqueio e no protetor de tela do Windows (e, a partir do código-fonte, do macOS) que mostram, num relance, quais assistentes de código você está usando: **Claude Code**, **Codex** e **Cursor**.
+Mascotes na tela de bloqueio e no protetor de tela do Windows (e, a partir do código-fonte, do macOS) que mostram, num relance, quais assistentes de código você está usando: **Claude Code**, **Codex**, **Cursor** e **Gemini CLI**.
 
 ![Lock screen com os três mascotes em uso](docs/lock-all-active.png)
 
@@ -16,7 +16,7 @@ Mascotes na tela de bloqueio e no protetor de tela do Windows (e, a partir do c�
 
 ![Estados: em uso, ocioso e fechado](docs/lock-states.png)
 
-> Projeto **não oficial**. Não tem vínculo com a Anthropic, a OpenAI nem a Anysphere (Cursor). Os mascotes são desenhos próprios, inspirados nas ferramentas. Claude, Codex e Cursor são marcas dos respectivos donos.
+> Projeto **não oficial**. Não tem vínculo com a Anthropic, a OpenAI, a Anysphere (Cursor) nem o Google (Gemini). Os mascotes são desenhos próprios, inspirados nas ferramentas. Claude, Codex, Cursor e Gemini são marcas dos respectivos donos.
 
 ## O que faz
 
@@ -33,8 +33,8 @@ Clique duas vezes no ícone da bandeja (ou use **Configurações…** no menu). 
 ![Janela de configurações: visão geral com prévia ao vivo](docs/settings-overview.png)
 
 - **Modelos**: o visual da tela. Hoje existe o modelo **Mascotes**; os próximos aparecem como “em breve” (e há um botão para sugerir o seu).
-- **Personagens**: o visual de cada mascote. O Claude Code e o Codex já podem segurar uma **xícara de café** (com vapor), e os três mascotes podem usar um **chapéu de Natal**; mais visuais estão a caminho.
-- **Ferramentas**: escolha quais mascotes aparecem (Claude Code, Codex, Cursor).
+- **Personagens**: o visual de cada mascote. O Claude Code e o Codex já podem segurar uma **xícara de café** (com vapor), e todos os mascotes podem usar um **chapéu de Natal**; mais visuais estão a caminho.
+- **Ferramentas**: escolha quais mascotes aparecem (Claude Code, Codex, Cursor, Gemini CLI).
 - **Detecção**: tempo até ficar ocioso, tolerância para "fechado" e se a janela em foco conta como em uso.
 - **Protetor de tela**: ligar, abrir após N minutos, não abrir durante vídeos e chamadas, bloquear o PC ao fechar.
 - **Geral**: idioma (automático, português ou inglês), iniciar com o Windows, abrir a pasta de dados e restaurar os padrões. No macOS há também "Mostrar na tela de bloqueio".
@@ -103,9 +103,10 @@ O macOS não tem API para trocar só a imagem da tela de bloqueio: ela mostra o 
 
 Tudo local, sem login e sem internet. O app **não lê o conteúdo** de nada, só olha:
 
-- a **data de modificação** dos arquivos que cada ferramenta grava enquanto responde: `~/.claude/projects/*/*.jsonl`, `~/.codex/sessions/AAAA/MM/DD/*.jsonl` e arquivos de `~/.cursor`;
+- a **data de modificação** dos arquivos que cada ferramenta grava enquanto responde: `~/.claude/projects/*/*.jsonl`, `~/.codex/sessions/AAAA/MM/DD/*.jsonl`, arquivos de `~/.cursor` e `~/.gemini/tmp/*/chats/*` e `~/.gemini/tmp/*/logs.json`;
 - a **lista de processos** (`claude.exe`, `codex.exe`, `cursor.exe`; no macOS, `Claude`, `Codex` e `Cursor`) para saber se está aberta;
 - **qual janela está em foco** e se você mexeu no teclado ou mouse nos últimos 3 minutos. O Cursor, por exemplo, quase não grava arquivos enquanto você só edita código.
+- O **Gemini CLI** roda dentro do Node (`node.exe`), então não dá para reconhecer o processo dele. No lugar, arquivos dele mexidos nos últimos 30 minutos contam como **ocioso** (aberto); depois disso, **fechado**.
 
 Regras: arquivo mudou nos últimos 3 minutos ou janela da ferramenta em foco (com você ativo, e por mais 2 minutos depois de perder o foco) → **em uso**. Processo aberto, sem atividade → **ocioso**. Sem processo por mais de 25 segundos → **fechado**. Todos esses tempos podem ser ajustados na página **Detecção** das configurações.
 
@@ -155,13 +156,13 @@ Veja o [guia de contribuição](CONTRIBUTING.md) para rodar o projeto, os testes
 
 ## English
 
-Mascots on the Windows (and, from source, macOS) lock screen and screensaver that show at a glance which AI coding assistants you are using: **Claude Code**, **Codex** and **Cursor**.
+Mascots on the Windows (and, from source, macOS) lock screen and screensaver that show at a glance which AI coding assistants you are using: **Claude Code**, **Codex**, **Cursor** and **Gemini CLI**.
 
 - **in use** (labelled “em uso”): colored mascot (walking in the screensaver, Cursor floats)
 - **idle** (“ocioso”): tool is open but quiet, gray and still
 - **closed** (“fechado”): tool is not running, very dim
 
-> **Unofficial** project, not affiliated with Anthropic, OpenAI or Anysphere (Cursor). The mascots are original drawings inspired by the tools. Claude, Codex and Cursor are trademarks of their respective owners.
+> **Unofficial** project, not affiliated with Anthropic, OpenAI, Anysphere (Cursor) or Google (Gemini). The mascots are original drawings inspired by the tools. Claude, Codex, Cursor and Gemini are trademarks of their respective owners.
 
 ![Claude Code mascot walking](docs/demo-claude.gif)
 
@@ -216,9 +217,10 @@ macOS has no API to change only the lock screen image: it shows the desktop wall
 
 Fully local, no login, no network. It never reads file contents, only:
 
-- **modification times** of files each tool writes while it is answering (`~/.claude/projects`, `~/.codex/sessions`, `~/.cursor`);
+- **modification times** of files each tool writes while it is answering (`~/.claude/projects`, `~/.codex/sessions`, `~/.cursor`, `~/.gemini/tmp`);
 - the **process list** (`claude.exe`, `codex.exe`, `cursor.exe`; `Claude`, `Codex` and `Cursor` on macOS);
 - the **foreground window**, plus whether you used the keyboard or mouse in the last 3 minutes.
+- **Gemini CLI** runs inside Node (`node.exe`), so its process can't be told apart. Instead, its files changing in the last 30 minutes count as **idle** (open); after that, **closed**.
 
 Recent file activity or the tool in focus while you are active → **in use**. Process running, no activity → **idle**. No process for 25+ seconds → **closed**. All thresholds are adjustable on the **Detection** page of the settings window.
 

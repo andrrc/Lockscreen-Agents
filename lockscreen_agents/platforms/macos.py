@@ -42,12 +42,14 @@ class MacPlatform(Platform):
     name = "macos"
 
     # TODO(macos): conferir os nomes reais dos processos com `ps -axo comm=` (Claude Desktop,
-    # Codex e Cursor). Os nomes abaixo são palpites em minúsculas.
-    PROCESS_NAMES = {"claude": {"claude"}, "codex": {"codex"}, "cursor": {"cursor"}}
+    # Codex e Cursor). Os nomes abaixo são palpites em minúsculas. O Gemini CLI roda no Node
+    # (aparece como "node"): o detector usa a atividade nos arquivos para ele (FILE_OPEN_HOLD).
+    PROCESS_NAMES = {"claude": {"claude"}, "codex": {"codex"}, "cursor": {"cursor"}, "gemini": {"gemini"}}
     FOCUS_MATCH = {
         "claude": ({"claude"}, ("claude.app",)),
         "codex": ({"codex"}, ("codex.app", "openai.codex")),
         "cursor": ({"cursor"}, ("cursor.app",)),
+        "gemini": ({"gemini"}, ()),
     }
 
     FONTS = ("/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc")

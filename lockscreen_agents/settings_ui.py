@@ -27,7 +27,7 @@ from . import autostart, launcher, platforms, settings, skins, templates
 from .i18n import duration, t
 from .logo import logo
 from .render import ACCENT as TOOL_ACCENT
-from .render import draw_claude, draw_codex, draw_cursor, render
+from .render import draw_claude, draw_codex, draw_cursor, draw_gemini, render
 
 # ------------------------------------------------------------------ tema
 BG = (14, 14, 17)
@@ -219,7 +219,8 @@ def mascot(key, size, skin=None):
     def make():
         img = {"claude": lambda: draw_claude(size * 2, tool=True, skin=skin),
                "codex": lambda: draw_codex(size * 2, skin=skin),
-               "cursor": lambda: draw_cursor(size * 2, active=True, glow=0.4, skin=skin)}[key]()
+               "cursor": lambda: draw_cursor(size * 2, active=True, glow=0.4, skin=skin),
+               "gemini": lambda: draw_gemini(size * 2, skin=skin)}[key]()
         w, h = img.width / 2, img.height / 2  # metade do tamanho desenhado (mais nítido)
         k = min(1.0, size * 1.1 / w, size * 1.1 / h)  # visuais largos (xícara) ou altos (chapéu) encolhem
         return img.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
@@ -793,7 +794,8 @@ class SettingsApp:
         self.preview_item = g.img(CX + (CW - pw) / 2, 164, self.preview_photo)
         # cartões de status
         cg = self.new_group()
-        cw = (CW - 24) / 3
+        n = len(settings.TOOLS)
+        cw = (CW - 12 * (n - 1)) / n
         for i, key in enumerate(settings.TOOLS):
             x, y = CX + i * (cw + 12), 112 + card_h + 14
             cg.card(x, y, cw, 64)
@@ -883,7 +885,8 @@ class SettingsApp:
         # leitura ao vivo
         y0 = 118 + 164 + 12
         lg = self.new_group()
-        self.hover_cards.append(lg.card(CX, y0, CW, 196))
+        live_h = 82 + 38 * len(settings.TOOLS)
+        self.hover_cards.append(lg.card(CX, y0, CW, live_h))
         lg.text(CX + 22, y0 + 16, t("how.live"), self.f["label"], TEXT)
         self.live_dot = lg.img(CX + CW - 24 - 10, y0 + 21, circle(px(8), GREEN), anchor="ne")
         for label, dx in (("how.col.files", 170), ("how.col.proc", 300), ("how.col.focus", 410)):
@@ -899,9 +902,9 @@ class SettingsApp:
             row["pill_tx"] = lg.text(CX + CW - 22 - 46, y + 10, "", self.f["small"], MUTED, anchor="center")
             self.how_rows[key] = row
         pg = self.new_group()
-        self.hover_cards.append(pg.card(CX, y0 + 196 + 12, CW, 66))
-        pg.img(CX + 20, y0 + 196 + 12 + 21, icon("lock", px(24), GREEN))
-        pg.text(CX + 58, y0 + 196 + 12 + 13, t("how.privacy"), self.f["small"], MUTED, width=CW - 80)
+        self.hover_cards.append(pg.card(CX, y0 + live_h + 12, CW, 66))
+        pg.img(CX + 20, y0 + live_h + 12 + 21, icon("lock", px(24), GREEN))
+        pg.text(CX + 58, y0 + live_h + 12 + 13, t("how.privacy"), self.f["small"], MUTED, width=CW - 80)
 
     def how_start(self):
         if getattr(self, "how_job", None):
@@ -965,27 +968,29 @@ class SettingsApp:
     # -- personagens (visuais dos mascotes)
     def page_skins(self):
         self.header("skins.title", "skins.sub")
-        gap, cw, chh, rgap = 12, 184, 66, 10
+        # quatro visuais por linha, para as quatro ferramentas caberem na janela sem rolar
+        gap, chh, rgap = 10, 58, 8
+        cw = (CW - 44 - 3 * gap) / 4
         cols = max(1, (CW - 44 + gap) // (cw + gap))  # quantos visuais cabem numa linha; o resto desce
         y = 120
         for key in settings.TOOLS:
             options = [s_ for s_ in skins.SKINS[key] if s_["available"]]
             rows = -(-len(options) // cols)
-            h = 48 + rows * chh + (rows - 1) * rgap + 14
+            h = 44 + rows * chh + (rows - 1) * rgap + 12
             g = self.new_group()
             self.hover_cards.append(g.card(CX, y, CW, h))
             g.text(CX + 22, y + 18, t("tool." + key), self.f["label"], TEXT)
             current = self.cfg["skins"][key]
             for j, sk in enumerate(options):
-                cx, cy = CX + 22 + (j % cols) * (cw + gap), y + 48 + (j // cols) * (chh + rgap)
+                cx, cy = CX + 22 + (j % cols) * (cw + gap), y + 44 + (j // cols) * (chh + rgap)
                 chip = g.card(cx, cy, cw, chh)
                 self.hover_cards.append(chip)
                 chip.active = sk["id"] == current
                 chip.set(chip.t)
-                spr = mascot(key, px(60), sk["id"])
-                g.img(cx + 14, cy + (chh - spr.height() / S) / 2, spr)
-                g.text(cx + 14 + 68, cy + chh / 2, t(f"skin.{key}.{sk['id']}"), self.f["small"],
-                       TEXT if chip.active else MUTED, anchor="w", width=cw - 14 - 68 - 8)
+                spr = mascot(key, px(44), sk["id"])
+                g.img(cx + 10, cy + (chh - spr.height() / S) / 2, spr)
+                g.text(cx + 10 + 50, cy + chh / 2, t(f"skin.{key}.{sk['id']}"), self.f["small"],
+                       TEXT if chip.active else MUTED, anchor="w", width=cw - 10 - 50 - 6)
                 g.target(cx, cy, cw, chh, SkinHit(self, key, sk["id"]))
             y += h + gap
 

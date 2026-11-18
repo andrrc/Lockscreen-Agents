@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from lockscreen_agents import settings
 from lockscreen_agents.platforms import base
 from lockscreen_agents.platforms.macos import MacPlatform
 
@@ -33,9 +34,9 @@ def test_windows_defines_every_method():
 
 
 def test_every_tool_has_process_names():
-    for cls in (MacPlatform,):
-        assert set(cls.PROCESS_NAMES) == {"claude", "codex", "cursor"}
-        assert set(cls.FOCUS_MATCH) == {"claude", "codex", "cursor"}
+    for cls in (MacPlatform, base.Platform):
+        assert set(cls.PROCESS_NAMES) == set(settings.TOOLS)
+        assert set(cls.FOCUS_MATCH) == set(settings.TOOLS)
 
 
 def test_lock_screen_is_opt_in_only_where_it_touches_the_user_wallpaper():

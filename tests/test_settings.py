@@ -21,7 +21,7 @@ def test_unavailable_template_falls_back():
 
 
 def test_at_least_one_tool_stays_on():
-    cfg = settings.save({"tools": {"claude": False, "codex": False, "cursor": False}})
+    cfg = settings.save({"tools": {"claude": False, "codex": False, "cursor": False, "gemini": False}})
     assert all(cfg["tools"].values())
 
 
@@ -32,7 +32,7 @@ def test_invalid_language_becomes_auto():
 def test_update_merges_tools_and_persists():
     settings.update(tools={"cursor": False})
     cfg = json.loads(settings.SETTINGS.read_text(encoding="utf-8"))
-    assert cfg["tools"] == {"claude": True, "codex": True, "cursor": False}
+    assert cfg["tools"] == {"claude": True, "codex": True, "cursor": False, "gemini": True}
 
 
 def test_corrupted_file_is_ignored():

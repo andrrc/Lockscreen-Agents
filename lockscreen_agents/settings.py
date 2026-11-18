@@ -14,13 +14,13 @@ APP_NAME = "LockscreenAgents"
 OUT_DIR = platforms.current().data_dir()
 SETTINGS = OUT_DIR / "settings.json"
 
-TOOLS = ("claude", "codex", "cursor")
+TOOLS = ("claude", "codex", "cursor", "gemini")
 
 DEFAULTS = {
     "lang": "auto",            # auto | pt | en
     "template": templates.DEFAULT,  # modelo visual (veja templates.py)
     "skins": skins.defaults(),      # visual de cada mascote (veja skins.py)
-    "tools": {"claude": True, "codex": True, "cursor": True},
+    "tools": {"claude": True, "codex": True, "cursor": True, "gemini": True},
     "active_window": 180,      # s sem atividade nos arquivos até deixar de estar "em uso"
     "follow_focus": True,      # janela da ferramenta em foco + você ativo conta como "em uso"
     "focus_hold": 120,         # s que continua "em uso" depois de a janela sair de foco

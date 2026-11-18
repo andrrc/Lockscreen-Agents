@@ -31,7 +31,11 @@ CODEX_SCREEN = (24, 28, 56)
 CODEX_GLYPH = (160, 228, 244)
 CODEX_CHEST = (214, 222, 244)
 CODEX_ARM = (96, 134, 240)
-ACCENT = {"claude": CLAUDE_ORANGE, "codex": (122, 160, 255), "cursor": (230, 230, 235)}
+# Gemini: degradê de cima para baixo (azul → roxo → rosado), uma cor por linha da estrela
+GEMINI_STOPS = ((71, 150, 227), (145, 119, 199), (202, 102, 115))
+GEMINI_SPARK = (226, 232, 255)
+ACCENT = {"claude": CLAUDE_ORANGE, "codex": (122, 160, 255), "cursor": (230, 230, 235),
+          "gemini": (164, 136, 238)}
 
 # Chapéu de Natal (visual "santa"). R vermelho, D vermelho escuro, L brilho, W pompom e barra, V sombra branca.
 HAT_ART = [
@@ -287,6 +291,58 @@ def draw_cursor(size=300, active=False, glow=0.0, skin="default"):
     return cube
 
 
+def _gemini_color(y, rows):
+    """Cor da linha `y` (0..rows-1) no degradê do Gemini."""
+    t_ = y / max(1, rows - 1) * (len(GEMINI_STOPS) - 1)
+    i = min(int(t_), len(GEMINI_STOPS) - 2)
+    f = t_ - i
+    a, b = GEMINI_STOPS[i], GEMINI_STOPS[i + 1]
+    return tuple(int(a[k] + (b[k] - a[k]) * f) for k in range(3))
+
+
+def draw_gemini(size=300, step=None, blink=False, tool=True, skin="default"):
+    """Mascote do Gemini CLI em pixel art: uma estrela de quatro pontas em degradê, com olhos,
+    as pontas laterais fazendo de bracinhos e duas perninhas.
+
+    Grade de 15x13 células. `step` alterna braços e pernas (caminhada); `blink` achata os olhos;
+    `tool` acende uma faísca no canto de cima (trabalhando). `skin` "santa" põe um chapéu de Natal.
+    """
+    rows, cols = 13, 15
+    px = max(1, size // cols)
+    img = Image.new("RGBA", (cols * px, rows * px), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+
+    def box(x0, y0, x1, y1, color):  # coordenadas inclusivas, em células
+        d.rectangle([x0 * px, y0 * px, (x1 + 1) * px - 1, (y1 + 1) * px - 1], fill=color)
+
+    walking = step is not None
+    # estrela: intervalo (x0, x1) preenchido em cada linha; as linhas 6 a 8 são as mais largas.
+    # A ponta de baixo fica curta para as duas perninhas aparecerem sozinhas.
+    star = [(7, 7), (7, 7), (6, 8), (6, 8), (5, 9), (4, 10), (2, 12), (2, 12), (2, 12),
+            (4, 10), (5, 9), (6, 8)]
+    for y, (x0, x1) in enumerate(star):
+        box(x0, y, x1, y, _gemini_color(y, rows))
+    # pontas laterais = bracinhos (sobem e descem uma linha a cada passo)
+    ay_l, ay_r = ((6, 8) if step % 2 else (8, 6)) if walking else (7, 7)
+    box(0, ay_l, 1, ay_l, _gemini_color(ay_l, rows))
+    box(13, ay_r, 14, ay_r, _gemini_color(ay_r, rows))
+    # olhos (piscando = só a linha de baixo)
+    for ex in (5, 9):
+        box(ex, 7 if blink else 6, ex, 7, EYE)
+    # perninhas: uma levanta a cada passo
+    for i, x in enumerate((5, 9)):
+        up = walking and (i % 2) == (step % 2)
+        box(x, 11, x, 11 if up else 12, _gemini_color(11, rows))
+    if tool:  # faísca de quatro pontas no canto de cima à direita (pisca com o passo)
+        box(12, 1, 12, 1, GEMINI_SPARK)
+        if not walking or step % 2 == 0:
+            box(12, 0, 12, 2, GEMINI_SPARK)
+            box(11, 1, 13, 1, GEMINI_SPARK)
+    if skin == "santa":  # a barra do chapéu assenta perto da ponta de cima
+        img = _with_pixel_hat(img, cx=7.5 * px, bottom_y=int(px * 2.6), sub=max(1, int(px * 0.5)))
+    return img
+
+
 def _gray(img, dim=0.55, alpha=0.8):
     a = img.split()[3]
     g = ImageEnhance.Color(img.convert("RGB")).enhance(0.0)
@@ -323,8 +379,8 @@ def render(status, step=None, size=(W, H)):
     img = Image.new("RGB", (w, h), BG)
     d = ImageDraw.Draw(img)
     logo = 300
-    gap = 140
-    keys = [k for k in ("claude", "codex", "cursor") if state_of(status, k) != "off"]
+    keys = [k for k in ("claude", "codex", "cursor", "gemini") if state_of(status, k) != "off"]
+    gap = 140 if len(keys) <= 3 else 90  # quatro mascotes: espaço menor para caber em 1920
     total = len(keys) * logo + (len(keys) - 1) * gap
     x0 = (w - total) // 2
     y0 = (h - logo) // 2 - 40
@@ -333,6 +389,7 @@ def render(status, step=None, size=(W, H)):
         "claude": lambda sk: draw_claude(logo, step, tool=state_of(status, "claude") == "working", skin=sk),
         "codex": lambda sk: draw_codex(logo, step, tool=state_of(status, "codex") == "working", skin=sk),
         "cursor": lambda sk: draw_cursor(logo, active=state_of(status, "cursor") == "working", glow=0.6, skin=sk),
+        "gemini": lambda sk: draw_gemini(logo, step, tool=state_of(status, "gemini") == "working", skin=sk),
     }
     for i, key in enumerate(keys):
         skin = cfg_skins[key]
@@ -370,5 +427,5 @@ def render(status, step=None, size=(W, H)):
 
 if __name__ == "__main__":
     import sys
-    render({"claude": True, "codex": False, "cursor": False}).save("preview.png")
+    render({"claude": True, "codex": False, "cursor": False, "gemini": False}).save("preview.png")
     print("preview.png gerado", file=sys.stderr)

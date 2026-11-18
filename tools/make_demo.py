@@ -49,9 +49,10 @@ if __name__ == "__main__":
     import os
     os.chdir(ROOT)
     os.makedirs("docs", exist_ok=True)
-    # lock screen: Claude em uso, Codex ocioso, Cursor fechado / todos em uso
-    render({"claude": "working", "codex": "open", "cursor": "closed"}).save("docs/lock-states.png")
-    render({"claude": "working", "codex": "working", "cursor": "working"}).save("docs/lock-all-active.png")
+    # lock screen: Claude e Gemini em uso, Codex ocioso, Cursor fechado / todos em uso
+    render({"claude": "working", "codex": "open", "cursor": "closed", "gemini": "working"}).save("docs/lock-states.png")
+    render({"claude": "working", "codex": "working", "cursor": "working", "gemini": "working"}).save(
+        "docs/lock-all-active.png")
     save_gif("docs/demo-claude.gif", frames(draw_claude, 190, lambda i: (i % 28) in (24, 25)))
     save_gif("docs/demo-codex.gif", frames(draw_codex, 220, lambda i: (i // 5) % 2 == 1))
     print("ok")

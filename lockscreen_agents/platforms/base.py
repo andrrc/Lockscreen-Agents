@@ -14,10 +14,10 @@ class Platform:
     name = "unknown"
 
     # Nomes de processo (minúsculos) de cada ferramenta, usados para saber se estão abertas.
-    PROCESS_NAMES = {"claude": set(), "codex": set(), "cursor": set()}
+    PROCESS_NAMES = {"claude": set(), "codex": set(), "cursor": set(), "gemini": set()}
 
     # Como reconhecer a janela em foco de cada ferramenta: (nomes de executável, trechos do caminho).
-    FOCUS_MATCH = {"claude": (set(), ()), "codex": (set(), ()), "cursor": (set(), ())}
+    FOCUS_MATCH = {"claude": (set(), ()), "codex": (set(), ()), "cursor": (set(), ()), "gemini": (set(), ())}
 
     # Fontes (caminho ou nome de arquivo) tentadas em ordem pelo render; cai na padrão do Pillow.
     FONTS = ("segoeui.ttf", "arial.ttf")

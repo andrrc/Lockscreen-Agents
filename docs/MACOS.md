@@ -86,7 +86,7 @@ precisa ser avaliado em um Mac.
   investigue o backend do `pystray` (`pystray._darwin`) e o `LSUIElement` (app sem ícone no Dock).
 - **Tela cheia.** O protetor usa `-fullscreen` e `-topmost` do Tk, que cobre só o monitor principal.
   `monitors()` ainda é o padrão da base.
-- **Onde as ferramentas gravam.** O detector olha `~/.claude/projects`, `~/.codex/sessions` e `~/.cursor`.
+- **Onde as ferramentas gravam.** O detector olha `~/.claude/projects`, `~/.codex/sessions`, `~/.cursor` e `~/.gemini/tmp`.
   Confirme se são os mesmos no macOS; se não forem, deixe isso por plataforma, não com `if sys.platform`.
 - **Fontes.** `render.py` usa `FONTS` da plataforma (SF e Helvetica no macOS) e cai na fonte padrão do
   Pillow se não achar.

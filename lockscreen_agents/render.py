@@ -53,20 +53,40 @@ HAT_ART = [
 HAT_COLORS = {"R": (212, 36, 46), "D": (160, 24, 36), "L": (238, 78, 82),
               "W": (250, 250, 252), "V": (212, 220, 234)}
 HAT_W = 22  # colunas da arte
+# Chapéu do Gemini: um cone alto e estreito que veste a ponta de cima da estrela, com o pompom no bico.
+GEMINI_HAT_ART = [
+    "......WW......",
+    ".....WWWW.....",
+    ".....VWWV.....",
+    "......RR......",
+    "......LR......",
+    ".....LRRD.....",
+    ".....LRRD.....",
+    "....LRRRRD....",
+    "....LRRRRD....",
+    "...LRRRRRRD...",
+    "...LRRRRRRD...",
+    "..LRRRRRRRRD..",
+    "..LRRRRRRRRD..",
+    ".LRRRRRRRRRRD.",
+    "WWWWWWWWWWWWWW",
+    "VVVVVVVVVVVVVV",
+]
 
 
-def _with_pixel_hat(img, cx, bottom_y, sub):
+def _with_pixel_hat(img, cx, bottom_y, sub, art=HAT_ART):
     """Põe o chapéu de Natal em pixel-art no mascote `img`, centralizado em `cx` e com a base da barra
     em `bottom_y` (px da imagem). `sub` é o tamanho de um "pixel" do chapéu. Se o chapéu passar do topo,
-    a imagem ganha uma margem em cima (o mascote desce junto, então a base continua no mesmo lugar)."""
-    hat_w, hat_h = HAT_W * sub, len(HAT_ART) * sub
+    a imagem ganha uma margem em cima (o mascote desce junto, então a base continua no mesmo lugar).
+    `art` troca o desenho do chapéu (o Gemini usa um cone mais estreito)."""
+    hat_w, hat_h = len(art[0]) * sub, len(art) * sub
     left, top = int(cx - hat_w / 2), int(bottom_y - hat_h)
     pad_l, pad_t = max(0, -left), max(0, -top)
     pad_r = max(0, left + hat_w - img.width)
     out = Image.new("RGBA", (img.width + pad_l + pad_r, img.height + pad_t), (0, 0, 0, 0))
     out.paste(img, (pad_l, pad_t), img)
     d = ImageDraw.Draw(out)
-    for y, row in enumerate(HAT_ART):
+    for y, row in enumerate(art):
         for x, ch in enumerate(row):
             if ch != ".":
                 x0, y0 = left + pad_l + x * sub, top + pad_t + y * sub
@@ -316,11 +336,14 @@ def draw_gemini(size=300, step=None, blink=False, tool=True, skin="default"):
         d.rectangle([x0 * px, y0 * px, (x1 + 1) * px - 1, (y1 + 1) * px - 1], fill=color)
 
     walking = step is not None
+    santa = skin == "santa"
     # estrela: intervalo (x0, x1) preenchido em cada linha; as linhas 6 a 8 são as mais largas.
     # A ponta de baixo fica curta para as duas perninhas aparecerem sozinhas.
     star = [(7, 7), (7, 7), (6, 8), (6, 8), (5, 9), (4, 10), (2, 12), (2, 12), (2, 12),
             (4, 10), (5, 9), (6, 8)]
     for y, (x0, x1) in enumerate(star):
+        if santa and y < 5:  # de chapéu, a ponta de cima fica escondida dentro do cone
+            continue
         box(x0, y, x1, y, _gemini_color(y, rows))
     # pontas laterais = bracinhos (sobem e descem uma linha a cada passo)
     ay_l, ay_r = ((6, 8) if step % 2 else (8, 6)) if walking else (7, 7)
@@ -338,8 +361,8 @@ def draw_gemini(size=300, step=None, blink=False, tool=True, skin="default"):
         if not walking or step % 2 == 0:
             box(12, 0, 12, 2, GEMINI_SPARK)
             box(11, 1, 13, 1, GEMINI_SPARK)
-    if skin == "santa":  # a barra do chapéu assenta perto da ponta de cima
-        img = _with_pixel_hat(img, cx=7.5 * px, bottom_y=int(px * 2.6), sub=max(1, int(px * 0.5)))
+    if santa:  # cone alto vestindo a ponta de cima; a barra assenta na linha de 7 células (linha 5)
+        img = _with_pixel_hat(img, cx=7.5 * px, bottom_y=5 * px, sub=max(1, round(px / 2)), art=GEMINI_HAT_ART)
     return img
 
 

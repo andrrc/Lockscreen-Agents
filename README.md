@@ -6,7 +6,7 @@
 
 Mascotes na tela de bloqueio e no protetor de tela do Windows (e, a partir do código-fonte, do macOS) que mostram, num relance, quais assistentes de código você está usando: **Claude Code**, **Codex**, **Cursor** e **Gemini CLI**.
 
-![Lock screen com os três mascotes em uso](docs/lock-all-active.png)
+![Lock screen com os quatro mascotes em uso](docs/lock-all-active.png)
 
 | Estado | Como aparece |
 | --- | --- |

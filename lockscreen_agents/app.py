@@ -10,7 +10,31 @@
 import sys
 
 
+def _log_crash():
+    """Grava em crash.log um erro que derrubou o app. Com pythonw (sem console) e no logon, sem
+    isto uma falha na abertura some sem deixar rastro."""
+    import time
+    import traceback
+    try:
+        from . import settings
+        settings.OUT_DIR.mkdir(parents=True, exist_ok=True)
+        with open(settings.OUT_DIR / "crash.log", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {sys.argv!r}\n{traceback.format_exc()}\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def main():
+    try:
+        _main()
+    except SystemExit:
+        raise
+    except BaseException:
+        _log_crash()
+        raise
+
+
+def _main():
     args = sys.argv[1:]
     if args[:1] == ["--restore-wallpaper"]:
         from . import platforms

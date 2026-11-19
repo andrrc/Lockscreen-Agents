@@ -44,10 +44,11 @@ def install():
     shutil.copytree(ROOT / "lockscreen_agents", dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     print(f"Arquivos copiados para {APP_DIR}")
 
-    # Dois caminhos (Run do registro + atalho em Inicializar): no logon de 16/11 o Windows ignorou
-    # a entrada do Run; com os dois, o que funcionar sobe o app (o mutex evita cópia dupla).
+    # Três caminhos (tarefa agendada no logon, Run do registro e atalho em Inicializar): o Windows
+    # ignorou o Run e a pasta Inicializar em vários logons; o mutex evita cópia dupla.
     ok = autostart.enable(APP_DIR)
-    print("Início automático ligado (registro" + (" + pasta Inicializar)." if ok else ")."))
+    print("Início automático ligado (tarefa agendada, registro e pasta Inicializar)." if ok
+          else "Início automático ligado só pelo registro (falhou a tarefa agendada e o atalho).")
 
     subprocess.Popen(launcher.command(directory=APP_DIR), cwd=APP_DIR,
                      creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | NEW_PROCESS_GROUP

@@ -163,12 +163,64 @@ class WindowsPlatform(Platform):
         self._mutexes[name] = handle  # precisa continuar referenciado enquanto o app roda
         return ctypes.windll.kernel32.GetLastError() != 183  # ERROR_ALREADY_EXISTS
 
-    # ---- início automático (registro Run + atalho em Inicializar)
-    # Dois caminhos de propósito: no logon de 16/11 o Windows ignorou a entrada do Run; com os
-    # dois, o que funcionar sobe o app (o mutex do tray evita cópia dupla).
+    # ---- início automático (tarefa agendada + registro Run + atalho em Inicializar)
+    # Três caminhos de propósito; o mutex do tray evita cópia dupla. A chave Run e a pasta
+    # Inicializar falharam em vários logons (17 a 19/11, com pythonw + app.py, o Windows nem tentou
+    # executar a entrada do Run). A tarefa agendada no logon é o caminho principal: espera alguns
+    # segundos a área de notificação ficar pronta e não para quando o notebook está na bateria.
     def _startup_lnk(self):
         return (Path(os.environ["APPDATA"]) / "Microsoft" / "Windows" / "Start Menu" / "Programs"
                 / "Startup" / f"{APP_NAME}.lnk")
+
+    @staticmethod
+    def _task_user():
+        domain = os.environ.get("USERDOMAIN")
+        user = os.environ.get("USERNAME", "")
+        return f"{domain}\\{user}" if domain else user
+
+    @staticmethod
+    def task_xml(command, user, delay_seconds=10):
+        """XML da tarefa agendada que abre o app no logon de `user` (sem pedir administrador)."""
+        from xml.sax.saxutils import escape
+        args = " ".join(f'"{a}"' for a in command[1:])
+        workdir = Path(command[-1]).parent if len(command) > 1 else Path(command[0]).parent
+        return f"""<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo><Description>Abre o Lockscreen Agents ao entrar no Windows.</Description></RegistrationInfo>
+  <Triggers>
+    <LogonTrigger><Enabled>true</Enabled><UserId>{escape(user)}</UserId><Delay>PT{int(delay_seconds)}S</Delay></LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author"><UserId>{escape(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>4</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec><Command>{escape(command[0])}</Command><Arguments>{escape(args)}</Arguments><WorkingDirectory>{escape(str(workdir))}</WorkingDirectory></Exec>
+  </Actions>
+</Task>
+"""
+
+    def _schtasks(self, *args):
+        return subprocess.run(["schtasks", *args], capture_output=True, creationflags=CREATE_NO_WINDOW)
+
+    def _task_exists(self):
+        return self._schtasks("/Query", "/TN", APP_NAME).returncode == 0
+
+    def _task_create(self, command):
+        import tempfile
+        fd, path = tempfile.mkstemp(suffix=".xml")
+        os.close(fd)
+        try:
+            Path(path).write_text(self.task_xml(command, self._task_user()), encoding="utf-16")
+            return self._schtasks("/Create", "/TN", APP_NAME, "/XML", path, "/F").returncode == 0
+        finally:
+            Path(path).unlink(missing_ok=True)
 
     def autostart_is_enabled(self):
         try:
@@ -176,10 +228,11 @@ class WindowsPlatform(Platform):
                 winreg.QueryValueEx(k, APP_NAME)
                 return True
         except OSError:
-            return self._startup_lnk().exists()
+            return self._startup_lnk().exists() or self._task_exists()
 
     def autostart_enable(self, command, icon=None):
         quote = lambda a: f'"{a}"'  # noqa: E731
+        task_ok = self._task_create(command)
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
             winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, " ".join(quote(a) for a in command))
         lnk = self._startup_lnk()
@@ -190,9 +243,11 @@ class WindowsPlatform(Platform):
               f"$s.WorkingDirectory='{Path(command[0]).parent}';$s.WindowStyle=7;$s.Save()")
         subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True,
                        creationflags=CREATE_NO_WINDOW)
-        return lnk.exists()
+        return lnk.exists() or task_ok
 
     def autostart_disable(self):
+        if self._task_exists():
+            self._schtasks("/Delete", "/TN", APP_NAME, "/F")
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
                 winreg.DeleteValue(k, APP_NAME)

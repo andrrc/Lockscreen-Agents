@@ -71,7 +71,9 @@ pip install -r requirements.txt
 python packaging/windows/install.py
 ```
 
-O `packaging/windows/install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do cadeado perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
+O `packaging/windows/install.py` copia o app para `%LOCALAPPDATA%\LockscreenAgents`, liga o início automático (tarefa agendada no logon, chave `Run` do registro e atalho na pasta Inicializar) e abre o app. Procure o ícone do cadeado perto do relógio. Pode apagar a pasta do projeto depois, o app instalado não depende dela.
+
+Rode o instalador num terminal comum (PowerShell ou Prompt de Comando), não no terminal de um app da Microsoft Store ou empacotado em MSIX, como o app desktop do Claude. Esses apps redirecionam o que é gravado em `AppData` e no registro para uma pasta privada deles, e aí o Windows não acha o app no logon.
 
 Sem usar Git: baixe o ZIP em **Releases** (ou em *Code → Download ZIP*), extraia e rode os dois últimos comandos acima.
 
@@ -193,7 +195,7 @@ pip install -r requirements.txt
 python packaging/windows/install.py
 ```
 
-`install.py` copies the app to `%LOCALAPPDATA%\LockscreenAgents`, enables autostart (registry `Run` key plus a Startup-folder shortcut) and launches it. Look for the padlock icon near the clock. No Git? Download the ZIP from **Releases**, extract it and run the last two commands.
+`install.py` copies the app to `%LOCALAPPDATA%\LockscreenAgents`, enables autostart (a logon scheduled task, the registry `Run` key and a Startup-folder shortcut) and launches it. Look for the padlock icon near the clock. Run it from a regular terminal, not from inside a Microsoft Store/MSIX-packaged app (such as the Claude desktop app): those redirect writes to `AppData` and the registry into a private folder, so Windows can't find the app at logon. No Git? Download the ZIP from **Releases**, extract it and run the last two commands.
 
 Uninstall with `python packaging/windows/install.py --uninstall`.
 

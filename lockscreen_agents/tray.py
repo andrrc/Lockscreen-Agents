@@ -247,6 +247,7 @@ class App:
 
 def main():
     if not single_instance():
+        log("já está aberto, esta cópia saiu")  # comum no logon: vários caminhos de início automático
         sys.exit(0)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     log("iniciado")

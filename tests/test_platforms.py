@@ -221,3 +221,18 @@ def test_macos_pmset_failure_does_not_block_the_saver(monkeypatch):
 
 def test_default_platform_never_blocks_the_saver():
     assert base.Platform().display_sleep_blocked() is False
+
+
+def test_windows_logon_task_xml_is_valid_and_quotes_paths():
+    pytest.importorskip("winreg")  # só existe no Windows
+    import xml.etree.ElementTree as ET
+    from lockscreen_agents.platforms.windows import WindowsPlatform
+    cmd = [r"C:\Py & Co\pythonw.exe", r"C:\Users\Zé <x>\app\app.py"]
+    root = ET.fromstring(WindowsPlatform.task_xml(cmd, r"PC\Zé", delay_seconds=10).split("?>", 1)[1])
+    ns = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
+    assert root.find(".//t:Exec/t:Command", ns).text == cmd[0]
+    assert root.find(".//t:Exec/t:Arguments", ns).text == f'"{cmd[1]}"'
+    assert root.find(".//t:Exec/t:WorkingDirectory", ns).text == r"C:\Users\Zé <x>\app"
+    assert root.find(".//t:LogonTrigger/t:UserId", ns).text == r"PC\Zé"
+    assert root.find(".//t:LogonTrigger/t:Delay", ns).text == "PT10S"
+    assert root.find(".//t:Settings/t:StopIfGoingOnBatteries", ns).text == "false"

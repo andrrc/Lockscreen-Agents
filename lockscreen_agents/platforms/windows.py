@@ -191,7 +191,9 @@ class WindowsPlatform(Platform):
     <LogonTrigger><Enabled>true</Enabled><UserId>{escape(user)}</UserId><Delay>PT{int(delay_seconds)}S</Delay></LogonTrigger>
   </Triggers>
   <Principals>
-    <Principal id="Author"><UserId>{escape(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal>
+    <Principal id="Author">
+      <UserId>{escape(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
   </Principals>
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>

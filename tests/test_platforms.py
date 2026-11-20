@@ -226,6 +226,7 @@ def test_default_platform_never_blocks_the_saver():
 def test_windows_logon_task_xml_is_valid_and_quotes_paths():
     pytest.importorskip("winreg")  # só existe no Windows
     import xml.etree.ElementTree as ET
+
     from lockscreen_agents.platforms.windows import WindowsPlatform
     cmd = [r"C:\Py & Co\pythonw.exe", r"C:\Users\Zé <x>\app\app.py"]
     root = ET.fromstring(WindowsPlatform.task_xml(cmd, r"PC\Zé", delay_seconds=10).split("?>", 1)[1])

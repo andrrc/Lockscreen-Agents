@@ -218,7 +218,7 @@ class App:
                       and not self.locked):
                     self.restore()  # destrancado com a imagem nossa ainda na tela: tenta de novo
                 key = (tuple(sorted(cfg["tools"].items())), cfg["lang"], tuple(sorted(cfg["skins"].items())),
-                       cfg["lock_wallpaper"])
+                       cfg["template"], cfg["lock_wallpaper"])
                 if key != self.cfg_key:  # mudou ferramentas, idioma ou visual: redesenha a lock screen
                     self.cfg_key = key
                     self.last_key = None

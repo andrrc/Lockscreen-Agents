@@ -1,6 +1,6 @@
 """Modelos (visuais) da tela de bloqueio e do protetor de tela.
 
-Hoje só existe o modelo "mascotes". Os outros aparecem na janela de configurações como
+Hoje existem os modelos "mascotes" e "escritório" (office.py). Os outros aparecem na janela de configurações como
 "em breve". Para lançar um modelo novo:
 
   1. troque `available` para True aqui;
@@ -16,6 +16,7 @@ DEFAULT = "mascots"
 
 TEMPLATES = [
     {"id": "mascots", "available": True},
+    {"id": "office", "available": True},
     {"id": "minimal", "available": False},
     {"id": "terminal", "available": False},
     {"id": "panel", "available": False},

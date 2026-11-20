@@ -393,10 +393,14 @@ def _font(size):
     return ImageFont.load_default()
 
 
-def render(status, step=None, size=(W, H)):
+def render(status, step=None, size=(W, H), template=None):
     """status: {'claude': 'working'|'open'|'closed'|'off', ...} (aceita também True/False).
-    Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza."""
+    Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza.
+    `template` escolhe o modelo (veja templates.py); sem ele, usa o das configurações."""
     from . import settings, skins
+    if (template or settings.get()["template"]) == "office":
+        from .office import render_office
+        return render_office(status, size)
     from .i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)

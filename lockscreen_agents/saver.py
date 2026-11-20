@@ -13,7 +13,7 @@ import traceback
 
 from PIL import ImageTk
 
-from . import platforms, settings
+from . import office, platforms, settings
 from .detector import get_states
 from .i18n import t
 from .render import ACCENT, BG, _gray, draw_claude, draw_codex, draw_cursor, draw_gemini
@@ -190,7 +190,8 @@ def run_saver(seconds=None):
     canvas = tk.Canvas(root, width=vw, height=vh, bg=hexcolor(BG), highlightthickness=0, cursor="none")
     canvas.pack(fill="both", expand=True)
 
-    scenes = [Scene(canvas, m, (vx, vy)) for m in mons]
+    make = office.Scene if settings.get()["template"] == "office" else Scene
+    scenes = [make(canvas, m, (vx, vy)) for m in mons]
     state = {"frame": 0}
     started = time.time()
     start_pos = root.winfo_pointerxy()

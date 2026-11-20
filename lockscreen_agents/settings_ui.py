@@ -1404,8 +1404,12 @@ def template_preview(key, available, w, h):
     """Miniatura do modelo, com cantos arredondados (esmaecida se ainda nao existe)."""
     if (key, available, w, h) not in _tpl_cache:
         if key == "mascots":
-            full = render({k: "working" for k in settings.TOOLS})
+            full = render({k: "working" for k in settings.TOOLS}, template="mascots")
             img = full.crop((240, 160, 1680, 970)).resize((w, h), Image.LANCZOS)  # recorte 16:9 nos mascotes
+        elif key == "office":  # uma mesa em uso (luz acesa) ao lado de uma ociosa (em espera)
+            full = render({"claude": "working", "codex": "open", "cursor": "closed", "gemini": "working"},
+                          template="office")
+            img = full.crop((40, 370, 1000, 910)).resize((w, h), Image.LANCZOS)  # as duas primeiras mesas
         else:
             img = concept_preview(key, w, h)
         if not available:

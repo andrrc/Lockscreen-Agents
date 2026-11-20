@@ -10,7 +10,7 @@ import traceback
 
 import pystray
 
-from . import detector, launcher, platforms, settings
+from . import detector, history, launcher, platforms, settings
 from .detector import get_states
 from .i18n import t
 from .logo import mark
@@ -70,6 +70,7 @@ class App:
         self.cfg_key = None     # assinatura das configurações que mudam a imagem (ferramentas, idioma)
         self.status = {}
         self.last_key = None
+        self.last_tick = None  # quando o último ciclo rodou (para somar o tempo em uso)
         self.n = 0
         self.locked = False     # tela bloqueada na última leitura (só usado onde a imagem vale bloqueado)
         # Já trocamos o papel de parede (precisa restaurar). Começa pelo disco: se o app anterior
@@ -226,10 +227,15 @@ class App:
                 if not self.paused:
                     status = get_states()
                     self.status = status
+                    now = time.monotonic()
+                    totals = history.add(status, now - self.last_tick) if self.last_tick else history.today()
+                    self.last_tick = now
                     write_status(status)
                     self.icon.title = "Lockscreen Agents — " + self._status_text()
                     self.icon.update_menu()
                     key = tuple(sorted(status.items()))
+                    if cfg["template"] == "scoreboard":  # o placar muda a cada minuto, não só com o estado
+                        key += tuple(sorted((k, int(v // 60)) for k, v in totals.items()))
                     if key != self.last_key:
                         self.apply(status)
                         self.last_key = key

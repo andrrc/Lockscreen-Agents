@@ -1410,6 +1410,11 @@ def template_preview(key, available, w, h):
             full = render({"claude": "working", "codex": "open", "cursor": "closed", "gemini": "working"},
                           template="office")
             img = full.crop((40, 370, 1000, 910)).resize((w, h), Image.LANCZOS)  # as duas primeiras mesas
+        elif key == "scoreboard":  # tempos de exemplo, para a miniatura não depender do dia
+            from .scoreboard import render_board
+            full = render_board({"claude": "working", "codex": "open", "cursor": "closed", "gemini": "working"},
+                                totals={"claude": 12300, "codex": 2820, "cursor": 0, "gemini": 5400})
+            img = full.crop((200, 225, 1720, 1080)).resize((w, h), Image.LANCZOS)
         else:
             img = concept_preview(key, w, h)
         if not available:

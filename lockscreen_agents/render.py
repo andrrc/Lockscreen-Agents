@@ -398,9 +398,13 @@ def render(status, step=None, size=(W, H), template=None):
     Ferramentas 'off' (desligadas nas configurações) não aparecem e o resto se recentraliza.
     `template` escolhe o modelo (veja templates.py); sem ele, usa o das configurações."""
     from . import settings, skins
-    if (template or settings.get()["template"]) == "office":
+    template = template or settings.get()["template"]
+    if template == "office":
         from .office import render_office
         return render_office(status, size)
+    if template == "scoreboard":
+        from .scoreboard import render_board
+        return render_board(status, size)
     from .i18n import t
     w, h = size
     img = Image.new("RGB", (w, h), BG)

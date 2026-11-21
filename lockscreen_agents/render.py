@@ -52,7 +52,6 @@ HAT_ART = [
 ]
 HAT_COLORS = {"R": (212, 36, 46), "D": (160, 24, 36), "L": (238, 78, 82),
               "W": (250, 250, 252), "V": (212, 220, 234)}
-HAT_W = 22  # colunas da arte
 # Chapéu do Gemini: um cone alto e estreito que veste a ponta de cima da estrela, com o pompom no bico.
 GEMINI_HAT_ART = [
     "......WW......",

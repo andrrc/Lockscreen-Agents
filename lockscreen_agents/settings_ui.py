@@ -691,7 +691,6 @@ class SettingsApp:
             for k in ("hov", "ic", "tx"):
                 c.tag_raise(it[k])
         c.tag_raise(self.sel_bar)
-        self.toast_img = self.toast_txt = None
         self._paint_nav()
 
     def _paint_nav(self):

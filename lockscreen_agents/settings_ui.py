@@ -827,8 +827,7 @@ class SettingsApp:
 
             def step(e, ch=ch, a=a, target=target):
                 ch["c"] = mix(a, target, e)
-                self.c.itemconfigure(ch["dot"], image=circle(px(12), mix((0, 0, 0), ch["c"], 1) if False else
-                                                             tuple(int(v) for v in ch["c"])))
+                self.c.itemconfigure(ch["dot"], image=circle(px(12), tuple(int(v) for v in ch["c"])))
 
             self.anim.run(f"chip_{key}", 380, step)
 

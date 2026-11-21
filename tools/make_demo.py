@@ -37,14 +37,6 @@ def save_gif(name, fr):
     fr[0].save(name, save_all=True, append_images=fr[1:], duration=70, loop=0, optimize=True)
 
 
-def poses(name, draw, size):
-    im = Image.new("RGB", (1000, 320), BG)
-    for i, (s, b) in enumerate([(None, False), (0, False), (1, False), (None, True)]):
-        c = draw(size, step=s, blink=b)
-        im.paste(c, (10 + i * 245, 20), c)
-    im.save(name)
-
-
 if __name__ == "__main__":
     import os
     os.chdir(ROOT)
